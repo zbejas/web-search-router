@@ -16,16 +16,18 @@ await runtime.providers.create({
   name: "Primary Firecrawl",
   type: "firecrawl",
   baseUrl: mock.url,
+  apiKey: "fc-e2e",
   priority: 100,
-  config: { probeMode: "readiness" },
+  config: { probeMode: "auto" },
 });
 await runtime.providers.create({
   id: "secondary",
   name: "Secondary Firecrawl",
   type: "firecrawl",
   baseUrl: mock.url,
+  apiKey: "fc-e2e",
   priority: 50,
-  config: { probeMode: "readiness" },
+  config: { probeMode: "auto" },
 });
 await runtime.providers.create({
   id: "disabled-fallback",

@@ -22,7 +22,7 @@ Every layer uses an isolated data directory. No test reads or writes `data/` in 
 | `tests/integration/auth-api.test.ts` | Auth disabled/open, auth enable, key requirement, scopes, revoke, login/logout, non-admin restrictions, setup guard. |
 | `tests/integration/providers-api.test.ts` | Provider CRUD, secret masking/clearing, validation, duplicate IDs, reorder, test, delete, metadata. |
 | `tests/integration/settings-logs-api.test.ts` | Settings validation/persistence/reset, log capture/redaction, filters, pagination bounds, timeseries cap, health endpoint. |
-| `tests/integration/health.test.ts` | Probe failure/recovery, no re-probe of healthy providers, manual test on disabled provider, DeepSeek probe. |
+| `tests/integration/health.test.ts` | Probe failure/recovery, Firecrawl credit exhaustion and refresh, no re-probe of healthy providers, manual test on disabled provider, DeepSeek probe. |
 | `tests/integration/ratelimit.test.ts` | Per-key sliding window, headers, reset, disabled behavior. |
 | `tests/integration/migration.test.ts` | Legacy `endpoints.json`/`settings.json`, encrypted keys, old `proxy.db` copy, legacy `fr_` key. |
 | `tests/e2e/server.ts` | Builds `.e2e-data`, seeds three providers, starts mock on 4311 and app on 4310. |
@@ -89,7 +89,7 @@ return { dir, runtime, app, close };
 | `timeout` | Waits 2 seconds; tests set a short request timeout |
 | `invalid` | 200 with HTML, triggering `invalid_response` |
 
-The mock credit endpoint returns `data.remainingCredits` from a mutable balance. Tests call `upstream.setCredits(0)` to reproduce Firecrawl's real exhausted-credit behavior: HTTP 200 with a zero balance, which the credit probe must treat as a quota failure.
+The mock credit endpoint returns `data.remainingCredits` from a mutable balance plus fixed plan and billing-period metadata. Tests call `upstream.setCredits(0)` to reproduce Firecrawl's real exhausted-credit behavior: HTTP 200 with a zero balance, which the credit probe must treat as a quota failure. The E2E seed gives both Firecrawl providers an API key and `auto` probe mode so the credit badge is exercised in the browser.
 
 ### E2E flow
 

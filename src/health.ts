@@ -14,11 +14,17 @@ interface DueOptions {
   includeHealthy?: boolean;
 }
 
+function usesCreditProbe(provider: ProviderRecord): boolean {
+  if (provider.type !== "firecrawl" || !provider.apiKey) return false;
+  const mode = (provider.config as { probeMode?: unknown }).probeMode;
+  return mode !== "readiness";
+}
+
 function isDue(provider: ProviderRecord, settings: Settings, options: DueOptions): boolean {
   if (!provider.enabled) return false;
   if (options.force) return true;
   const probeHealthy = options.includeHealthy || settings.routing.probeHealthy;
-  if (provider.health === "healthy" && !probeHealthy) return false;
+  if (provider.health === "healthy" && !probeHealthy && !usesCreditProbe(provider)) return false;
   const interval =
     (provider.probeIntervalSeconds ?? settings.routing.healthCheckIntervalSeconds) * 1_000;
   if (!provider.lastCheckedAt) return true;

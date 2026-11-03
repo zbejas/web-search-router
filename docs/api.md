@@ -231,6 +231,8 @@ Client errors from upstream (`400`, `422`, etc.) are returned unchanged when the
 
 Responses never include `apiKey`; they include `apiKeySet` and `apiKeyHint` (last four characters). `id` is immutable after creation. Duplicate explicit IDs return `400` with an `issues` array.
 
+Firecrawl providers also include the latest credit snapshot from their health probe: `creditsRemaining`, `creditsPlan`, `creditsPeriodEnd`, and `creditsCheckedAt`. These are `null` until an `auto`/`credit` probe succeeds, and are cleared when a provider stops being Firecrawl or its API key is removed. `POST /api/providers/:id/test` includes the probe's `credits` object.
+
 ### Settings payload
 
 Grouped:

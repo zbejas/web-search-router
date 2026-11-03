@@ -1,6 +1,7 @@
 import type { Database } from "bun:sqlite";
 import type {
   Capability,
+  CreditState,
   FailureKind,
   Provider,
   ProviderEvent,
@@ -29,6 +30,10 @@ interface ProviderRow {
   last_error: string | null;
   last_status_code: number | null;
   last_latency_ms: number | null;
+  credits_remaining: number | null;
+  credits_plan: number | null;
+  credits_period_end: string | null;
+  credits_checked_at: string | null;
   capabilities: string;
   config: string;
   probe_interval_seconds: number | null;
@@ -76,6 +81,10 @@ function rowToRecord(row: ProviderRow, apiKey: string | null): ProviderRecord {
     lastError: row.last_error,
     lastStatusCode: row.last_status_code,
     lastLatencyMs: row.last_latency_ms,
+    creditsRemaining: row.credits_remaining,
+    creditsPlan: row.credits_plan,
+    creditsPeriodEnd: row.credits_period_end,
+    creditsCheckedAt: row.credits_checked_at,
     capabilities: parseJson<Capability[]>(row.capabilities, []),
     config: parseJson<Record<string, unknown>>(row.config, {}),
     probeIntervalSeconds: row.probe_interval_seconds,
@@ -277,13 +286,16 @@ export class ProviderStore {
       : existing.capabilities;
     const enabledChanged = merged.enabled !== existing.enabled;
     const health = enabledChanged && merged.enabled ? "unknown" : existing.health;
+    const clearCredits =
+      merged.type !== "firecrawl" || input.apiKey === null || input.apiKey === "";
 
     this.db
       .prepare(
         `UPDATE providers SET
           name = ?, type = ?, base_url = ?, api_key = ?, api_key_hint = ?,
           priority = ?, enabled = ?, health = ?, capabilities = ?, config = ?,
-          probe_interval_seconds = ?, updated_at = ?
+          probe_interval_seconds = ?, credits_remaining = ?, credits_plan = ?,
+          credits_period_end = ?, credits_checked_at = ?, updated_at = ?
          WHERE id = ?`,
       )
       .run(
@@ -298,6 +310,10 @@ export class ProviderStore {
         JSON.stringify(capabilities),
         JSON.stringify(merged.config ?? {}),
         merged.probeIntervalSeconds ?? null,
+        clearCredits ? null : existing.creditsRemaining,
+        clearCredits ? null : existing.creditsPlan,
+        clearCredits ? null : existing.creditsPeriodEnd,
+        clearCredits ? null : existing.creditsCheckedAt,
         nowIso(),
         id,
       );
@@ -408,7 +424,14 @@ export class ProviderStore {
 
   async recordProbe(
     id: string,
-    result: { ok: boolean; statusCode: number | null; error: string | null; latencyMs: number; failureKind: FailureKind | null },
+    result: {
+      ok: boolean;
+      statusCode: number | null;
+      error: string | null;
+      latencyMs: number;
+      failureKind: FailureKind | null;
+      credits?: CreditState | null;
+    },
     settings: Settings,
     options: { forceRecover?: boolean } = {},
   ): Promise<{ provider: ProviderRecord | null; transition: "recovered" | "failed" | "none" }> {
@@ -416,6 +439,11 @@ export class ProviderStore {
     if (!existing) return { provider: null, transition: "none" };
     const now = nowIso();
     const canRecover = options.forceRecover || settings.routing.autoRecoverEnabled;
+    const credits = result.credits ?? null;
+    const creditsRemaining = credits ? credits.remainingCredits : existing.creditsRemaining;
+    const creditsPlan = credits ? credits.planCredits : existing.creditsPlan;
+    const creditsPeriodEnd = credits ? credits.periodEnd : existing.creditsPeriodEnd;
+    const creditsCheckedAt = credits ? now : existing.creditsCheckedAt;
 
     if (result.ok) {
       const shouldRecover = existing.health !== "healthy" && canRecover;
@@ -425,7 +453,8 @@ export class ProviderStore {
           `UPDATE providers SET
             health = ?, consecutive_failures = ?, last_checked_at = ?,
             last_healthy_at = ?, last_error = NULL, last_status_code = ?,
-            last_latency_ms = ?, updated_at = ?
+            last_latency_ms = ?, credits_remaining = ?, credits_plan = ?,
+            credits_period_end = ?, credits_checked_at = ?, updated_at = ?
            WHERE id = ?`,
         )
         .run(
@@ -435,6 +464,10 @@ export class ProviderStore {
           now,
           result.statusCode,
           result.latencyMs,
+          creditsRemaining,
+          creditsPlan,
+          creditsPeriodEnd,
+          creditsCheckedAt,
           now,
           id,
         );
@@ -453,7 +486,9 @@ export class ProviderStore {
       .prepare(
         `UPDATE providers SET
           consecutive_failures = ?, health = ?, last_checked_at = ?,
-          last_error = ?, last_status_code = ?, last_latency_ms = ?, updated_at = ?
+          last_error = ?, last_status_code = ?, last_latency_ms = ?,
+          credits_remaining = ?, credits_plan = ?, credits_period_end = ?,
+          credits_checked_at = ?, updated_at = ?
          WHERE id = ?`,
       )
       .run(
@@ -463,6 +498,10 @@ export class ProviderStore {
         result.error ?? "Probe failed",
         result.statusCode,
         result.latencyMs,
+        creditsRemaining,
+        creditsPlan,
+        creditsPeriodEnd,
+        creditsCheckedAt,
         now,
         id,
       );

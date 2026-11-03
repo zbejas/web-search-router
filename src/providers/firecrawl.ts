@@ -1,5 +1,6 @@
 import type {
   Capability,
+  CreditState,
   Operation,
   ProbeResult,
   ProviderInput,
@@ -56,18 +57,34 @@ function targetUrl(provider: ProviderRecord, request: Request): string {
   return `${provider.baseUrl}${url.pathname}${url.search}`;
 }
 
-function remainingCreditsFromBody(text: string): number | null {
+function finiteNumber(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim().length > 0) {
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? numeric : null;
+  }
+  return null;
+}
+
+function creditStateFromBody(text: string): CreditState | null {
   try {
     const parsed = JSON.parse(text) as {
-      data?: { remainingCredits?: unknown };
+      data?: {
+        remainingCredits?: unknown;
+        planCredits?: unknown;
+        billingPeriodEnd?: unknown;
+      };
     };
-    const value = parsed.data?.remainingCredits;
-    if (typeof value === "number" && Number.isFinite(value)) return value;
-    if (typeof value === "string" && value.trim().length > 0) {
-      const numeric = Number(value);
-      return Number.isFinite(numeric) ? numeric : null;
-    }
-    return null;
+    const remainingCredits = finiteNumber(parsed.data?.remainingCredits);
+    if (remainingCredits === null) return null;
+    return {
+      remainingCredits,
+      planCredits: finiteNumber(parsed.data?.planCredits),
+      periodEnd:
+        typeof parsed.data?.billingPeriodEnd === "string"
+          ? parsed.data.billingPeriodEnd
+          : null,
+    };
   } catch {
     return null;
   }
@@ -275,9 +292,9 @@ export const firecrawlAdapter: ProviderAdapter = {
         );
         const raw = await response.text();
         const text = truncate(raw, 2_000);
+        const credits = creditStateFromBody(raw);
         if (response.ok) {
-          const remainingCredits = remainingCreditsFromBody(raw);
-          if (remainingCredits === null) {
+          if (credits === null) {
             return {
               ok: false,
               statusCode: response.status,
@@ -288,15 +305,16 @@ export const firecrawlAdapter: ProviderAdapter = {
               failureKind: "invalid_response",
             };
           }
-          if (remainingCredits <= 0) {
+          if (credits.remainingCredits <= 0) {
             return {
               ok: false,
               statusCode: response.status,
               latencyMs: Date.now() - started,
               body: text,
-              error: `Firecrawl reports ${remainingCredits} remaining credits`,
+              error: `Firecrawl reports ${credits.remainingCredits} remaining credits`,
               hint: "Firecrawl has exhausted its credits. Add credits or wait for the plan to reset before re-enabling it.",
               failureKind: "quota",
+              credits,
             };
           }
           return {
@@ -307,6 +325,7 @@ export const firecrawlAdapter: ProviderAdapter = {
             error: null,
             hint: null,
             failureKind: null,
+            credits,
           };
         }
         // Older/self-hosted builds may not expose the billing route. Fall back
@@ -322,6 +341,7 @@ export const firecrawlAdapter: ProviderAdapter = {
           error: `Credit usage endpoint returned ${response.status}`,
           hint: hintForStatus(response.status, "Firecrawl"),
           failureKind: statusFailureKind(response.status),
+          credits,
         };
       } catch (error) {
         const message = error instanceof Error ? error.message : "Network error";

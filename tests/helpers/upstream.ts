@@ -77,7 +77,12 @@ export function startMockUpstream(port = 0): MockUpstream {
         if (state.mode === "ok") {
           return Response.json({
             success: true,
-            data: { remainingCredits: state.creditsRemaining },
+            data: {
+              remainingCredits: state.creditsRemaining,
+              planCredits: 5_000,
+              billingPeriodStart: "2026-11-01T00:00:00.000Z",
+              billingPeriodEnd: "2026-12-01T00:00:00.000Z",
+            },
           });
         }
         return failureResponse(state.mode);

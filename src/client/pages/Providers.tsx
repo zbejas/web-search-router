@@ -16,9 +16,9 @@ import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../hooks/useToast";
 import type { Provider, ProviderTestResult, ProviderType, ProviderTypeMeta } from "../lib/api";
 import { api } from "../lib/api";
-import { formatDuration, formatNumber, formatPercent, formatRelative, truncate } from "../lib/format";
+import { formatDate, formatDuration, formatNumber, formatPercent, formatRelative, truncate } from "../lib/format";
 import { ProviderForm } from "../components/ProviderForm";
-import { HealthBadge, ProviderTypeMark } from "../components/status";
+import { CreditBadge, HealthBadge, ProviderTypeMark } from "../components/status";
 import {
   Badge,
   Button,
@@ -281,6 +281,7 @@ export function ProvidersPage({
                   <th>Status</th>
                   <th>Base URL</th>
                   <th>Key</th>
+                  <th className="text-right">Credits</th>
                   <th className="text-right">Requests</th>
                   <th className="text-right">Success</th>
                   <th className="text-right">Avg</th>
@@ -345,6 +346,20 @@ export function ProvidersPage({
                       <span className="font-mono text-[10px] text-muted">
                         {provider.apiKeySet ? provider.apiKeyHint ?? "saved" : "no key"}
                       </span>
+                    </td>
+                    <td className="text-right">
+                      {provider.type === "firecrawl" && provider.creditsRemaining !== null ? (
+                        <div className="flex flex-col items-end gap-1">
+                          <CreditBadge provider={provider} showPlan />
+                          <span className="font-mono text-[9px] text-dim">
+                            {provider.creditsCheckedAt
+                              ? formatRelative(provider.creditsCheckedAt)
+                              : "never checked"}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="font-mono text-[10px] text-dim">—</span>
+                      )}
                     </td>
                     <td className="num text-right">{formatNumber(provider.requestCount)}</td>
                     <td className="num text-right">{provider.requestCount > 0 ? formatPercent(provider.successRate) : "—"}</td>
@@ -431,6 +446,24 @@ export function ProvidersPage({
               <div className="flex items-start gap-2 rounded-sm border border-warn/30 bg-warn/5 px-3 py-2 text-[11px] leading-relaxed text-warn">
                 <CheckCircle2 size={14} className="mt-0.5 shrink-0" />
                 {testResult.hint}
+              </div>
+            ) : null}
+            {testResult.credits ? (
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-sm border border-line bg-bg px-3 py-2">
+                <span className="mono-label">Credits</span>
+                <span className="font-mono text-[11px] text-ink">
+                  {formatNumber(testResult.credits.remainingCredits)} remaining
+                </span>
+                {testResult.credits.planCredits !== null ? (
+                  <span className="font-mono text-[10px] text-muted">
+                    of {formatNumber(testResult.credits.planCredits)}
+                  </span>
+                ) : null}
+                {testResult.credits.periodEnd ? (
+                  <span className="font-mono text-[10px] text-dim">
+                    resets {formatDate(testResult.credits.periodEnd)}
+                  </span>
+                ) : null}
               </div>
             ) : null}
             <div>

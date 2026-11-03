@@ -44,6 +44,10 @@ export interface ProviderRecord {
   lastError: string | null;
   lastStatusCode: number | null;
   lastLatencyMs: number | null;
+  creditsRemaining: number | null;
+  creditsPlan: number | null;
+  creditsPeriodEnd: string | null;
+  creditsCheckedAt: string | null;
   capabilities: Capability[];
   config: Record<string, unknown>;
   probeIntervalSeconds: number | null;
@@ -116,6 +120,12 @@ export interface RouteAttempt {
   failureKind: FailureKind | null;
 }
 
+export interface CreditState {
+  remainingCredits: number;
+  planCredits: number | null;
+  periodEnd: string | null;
+}
+
 export interface ProbeResult {
   ok: boolean;
   statusCode: number | null;
@@ -125,6 +135,7 @@ export interface ProbeResult {
   hint: string | null;
   failureKind: FailureKind | null;
   creditsUsed?: number;
+  credits?: CreditState | null;
 }
 
 export interface ProviderTestResult extends ProbeResult {

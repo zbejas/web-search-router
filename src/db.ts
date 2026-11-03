@@ -41,6 +41,10 @@ function migrate(db: Database): void {
       capabilities TEXT NOT NULL DEFAULT '[]',
       config TEXT NOT NULL DEFAULT '{}',
       probe_interval_seconds INTEGER,
+      credits_remaining REAL,
+      credits_plan REAL,
+      credits_period_end TEXT,
+      credits_checked_at TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
@@ -141,6 +145,10 @@ function migrate(db: Database): void {
 
   // Migrate older databases in place without losing rows.
   ensureColumn(db, "api_keys", "scopes", `TEXT NOT NULL DEFAULT '["*"]'`);
+  ensureColumn(db, "providers", "credits_remaining", "REAL");
+  ensureColumn(db, "providers", "credits_plan", "REAL");
+  ensureColumn(db, "providers", "credits_period_end", "TEXT");
+  ensureColumn(db, "providers", "credits_checked_at", "TEXT");
   ensureColumn(db, "proxy_logs", "request_id", "TEXT");
   ensureColumn(db, "proxy_logs", "request_query", "TEXT");
   ensureColumn(db, "proxy_logs", "operation", "TEXT");

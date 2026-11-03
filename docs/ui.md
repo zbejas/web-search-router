@@ -24,8 +24,8 @@ The UI has no separate router dependency; it uses hash navigation (`#/overview`,
 | `src/client/components/CommandPalette.tsx` | ⌘K/Ctrl+K page jump dialog. |
 | `src/client/components/ToastContainer.tsx` | Bottom-right toast stack. |
 | `src/client/components/ui.tsx` | Button, Input, Select, Textarea, Badge, Panel, Field, Toggle, Skeleton, EmptyState, ErrorNotice, Dialog, ConfirmDialog. |
-| `src/client/components/status.tsx` | Health badge, status dot, provider type marks. |
-| `src/client/components/RouteBoard.tsx` | Primary/standby route chain with priority, health, requests, success, latency. |
+| `src/client/components/status.tsx` | Health badge, credit badge, status dot, provider type marks. |
+| `src/client/components/RouteBoard.tsx` | Primary/standby route chain with priority, health, credits, requests, success, latency. |
 | `src/client/components/ProviderForm.tsx` | Add/edit provider dialog, type cards, presets, JSON config editor. |
 | `src/client/pages/Login.tsx` | Login and first-run admin setup. |
 | `src/client/pages/Overview.tsx` | Metrics, route board, health envelope, traffic chart, events, provider ledger. |
@@ -72,6 +72,7 @@ The sidebar is fixed above 980 px and becomes a drawer at 980 px and below. The 
 - All fetch helpers throw `ApiError` with `status` and `issues`; forms show `ErrorNotice` with the issue list.
 - A failed initial load renders `LoadError` with Retry, never an empty state or an endless skeleton. Empty states are reserved for successful zero-result responses.
 - Overview counts only `health === "healthy"` as healthy. Unverified and auto-disabled providers are reported separately; zero-traffic rates and latencies render as `—`, not `0%`/`0ms`.
+- Firecrawl providers expose a credit snapshot from the `/v2/team/credit-usage` probe. `CreditBadge` shows remaining credits in the route board and provider table; the badge tooltip carries the plan size, reset date, and last check time. Zero credits render as bad; the last tenth of the plan renders as a warning.
 
 ### Design system
 
@@ -104,7 +105,7 @@ The sidebar is fixed above 980 px and becomes a drawer at 980 px and below. The 
 - `Dialog` uses Radix Dialog with overlay, title, description, body, footer; `wide` for provider/log detail.
 - `Field` wraps label, control, and help text; inputs use `.input`, `.select`, `.textarea`.
 - `ProviderTypeMark` is the only place that maps type → icon.
-- `RouteBoard` is the signature element: priority box, provider identity, live badge, metrics, health badge; standby lane below a labeled divider. Primary rows expose reorder controls, standby rows expose a probe action, and the empty-primary warning states whether last-resort failover is on.
+- `RouteBoard` is the signature element: priority box, provider identity, live badge, metrics, Firecrawl credit badge, health badge; standby lane below a labeled divider. Primary rows expose reorder controls, standby rows expose a probe action, and the empty-primary warning states whether last-resort failover is on.
 - `LoadError` is the failed-initial-load state. It carries `role="alert"` and a Retry action; do not use `ErrorNotice` as a substitute for a missing surface.
 - Toggle buttons use `aria-pressed`; Access tabs use `role="tablist"`/`role="tab"` with `aria-selected`.
 - Empty states teach the next action (add provider, send a request) instead of saying “nothing here”. Overview’s add-provider actions open the provider form, not just the Providers page.
@@ -125,6 +126,7 @@ The sidebar is fixed above 980 px and becomes a drawer at 980 px and below. The 
 - **Reorder uses the full sorted provider list, not the filtered table.** Moving a row while a filter is active still computes order across all providers.
 - **Logs are already redacted by the server.** Do not add client-side secret rendering; the body shown is what SQLite stored.
 - **Overview chart empty state is expected on a fresh database.** Send a search or proxy request to populate it.
+- **Credit data is a probe snapshot, not live billing.** `creditsCheckedAt` states its age. Firecrawl `readiness` mode never populates credits; use `auto`/`credit` with an API key.
 - **`formatDate()` treats space-separated timestamps as UTC.** SQLite stores `YYYY-MM-DD HH:MM:SS`; the helper appends `T`/`Z` before parsing.
 - **The mobile drawer uses a fixed rail and a backdrop.** Do not set `overflow: hidden` on a parent of the rail; the dialog/topbar layering depends on the existing z-index order. Keep the closed rail `inert`; otherwise its controls remain in the tab order while off-screen.
 - **E2E selectors rely on accessible names.** Buttons use `aria-label` with provider names (`Test <name>`, `Disable <name>`), switches have labels, and page headings are level 2. Keep those names stable.

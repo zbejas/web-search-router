@@ -91,7 +91,8 @@ export const SETTINGS_SCHEMA: SettingsField[] = [
     path: "routing.probeHealthy",
     group: "routing",
     label: "Probe healthy providers too",
-    description: "Also run periodic probes against providers currently marked healthy.",
+    description:
+      "Also probe healthy providers of every type. Firecrawl providers with an API key always refresh credits on the health interval.",
     type: "boolean",
     default: false,
   },

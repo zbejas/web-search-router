@@ -29,7 +29,7 @@ Operators run the service with Bun or Docker Compose, open a browser dashboard, 
 - If no healthy provider works, auto-disabled providers can be tried as a last resort; the operator can turn this off.
 - Provider API keys are encrypted at rest and never returned by the API. Request logs redact credentials.
 - Authentication is disabled on first run. Enabling it requires an admin account. Proxy traffic then requires a router API key.
-- DeepSeek search is billed per successful request. Firecrawl health probes use the free readiness endpoint; credit checks validate the key when one is configured.
+- DeepSeek search is billed per successful request. Firecrawl health probes use the free readiness endpoint; credit checks validate the key, surface the remaining balance in the dashboard, and keep credit-exhausted providers out of rotation until the balance returns.
 - The old project's data migrates in place: `proxy.db`, `endpoints.json`, and `settings.json` are imported, old `fr_` keys remain valid, and new keys use the `wsr_` prefix.
 - There is no `.env` requirement. Configuration is stored in SQLite and edited in the dashboard.
 - Runtime: Bun, Elysia, React, Vite, Tailwind, SQLite, Playwright for browser tests.

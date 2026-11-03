@@ -15,6 +15,7 @@ The UI has no separate router dependency; it uses hash navigation (`#/overview`,
 | `src/client/index.css` | Tailwind 4 tokens, base styles, component classes, animations, responsive rules. |
 | `src/client/lib/api.ts` | Typed API client, `ApiError`, all endpoint wrappers. |
 | `src/client/lib/format.ts` | Date, relative time, duration, interval, number, percent, status, SQLite datetime helpers. |
+| `src/client/lib/random.ts` | Secure-context-safe IDs for client-side toasts. |
 | `src/client/hooks/useAuth.tsx` | Auth state, login/logout, refresh, `isAdmin`. |
 | `src/client/hooks/useToast.tsx` | Toast queue and auto-dismiss. |
 | `src/client/hooks/useTheme.tsx` | Dark/light theme with `localStorage` persistence. |
@@ -114,6 +115,7 @@ The sidebar is fixed above 980 px and becomes a drawer at 980 px and below. The 
 - **Hash navigation must be updated in four places.** Adding a page only to `App.tsx` leaves it unreachable from the rail and command palette.
 - **Auth disabled means system admin, not no auth.** The UI shows an open control plane banner; mutations still work. Enabling auth requires an admin account.
 - **The theme is stored in `localStorage` under `wsr-theme`.** Browser `prefers-color-scheme` is only the first-run default.
+- **`crypto.randomUUID` is secure-context-only.** A dashboard served over plain HTTP on a LAN does not have it, even though `localhost` does. Client IDs go through `src/client/lib/random.ts`, which falls back to `getRandomValues` and then a time/random suffix. Do not call `crypto.randomUUID` directly in browser code.
 - **Provider config is raw JSON in the form.** Type changes replace the config with the new adapter’s default; review the JSON before saving. Invalid JSON is rejected client-side and by the API.
 - **Per-provider probe interval is a first-class form field.** It is a top-level `probeIntervalSeconds`, not part of the JSON config. Blank means use the global health interval; DeepSeek probes can bill.
 - **Disabling authentication is a confirmed downgrade.** The Settings toggle opens a confirmation dialog and keeps the toggle on until the user confirms.

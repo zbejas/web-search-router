@@ -6,12 +6,12 @@ These PNGs are evidence of the dashboard at a specific build, not design source 
 
 | Field | Value |
 |---|---|
-| Captured | 2026-11-03T16:52:43Z |
-| Source | v0.1.0 working tree (captured before the initial release commit) |
+| Captured | 2026-11-03T17:04:21Z |
+| Source | v0.1.1 working tree (captured before the release commit) |
 | Build | `bun run build`; served from `dist/` |
-| `dist/index.html` SHA-256 | `a1bdeb8db9a900041b7fc0981b33b4c83f8a32a5669af1c7872121382c7159eb` |
+| `dist/index.html` SHA-256 | `a416d122cf7c29bfe48c36d739848c258669f768142783b41763808b57f15711` |
 | `dist/assets/index-FQ05WyrU.css` SHA-256 | `1628c1e6d8d1d741a9d7e8bbdc0032efa234e7518a7c72dae03d3984cc600d56` |
-| `dist/assets/index-C2alZ6Bz.js` SHA-256 | `c14eff5df946d74b3ab7ed032727d4bb14a428a9260ed78f3bd1bac50ed6625c` |
+| `dist/assets/index-BG3dit5f.js` SHA-256 | `b05a598663d9bce2866b6db3240c57e69de7216705e071aebd7dc220e31551c0` |
 | Browser | Playwright, Chrome channel (same as E2E) |
 | Theme | Per file below; `localStorage["wsr-theme"]` set before load |
 | Motion | Screenshot mode disables CSS animations/transitions |

@@ -89,6 +89,8 @@ return { dir, runtime, app, close };
 | `timeout` | Waits 2 seconds; tests set a short request timeout |
 | `invalid` | 200 with HTML, triggering `invalid_response` |
 
+The mock credit endpoint returns `data.remainingCredits` from a mutable balance. Tests call `upstream.setCredits(0)` to reproduce Firecrawl's real exhausted-credit behavior: HTTP 200 with a zero balance, which the credit probe must treat as a quota failure.
+
 ### E2E flow
 
 Tests run serially with one worker because they share the seeded database. The last test enables authentication, signs out, signs in, and disables authentication again. If you add tests, keep state-changing auth tests at the end or reset `.e2e-data`.

@@ -70,6 +70,7 @@ Create/update payloads accept `id`, `name`, `type`, `baseUrl`, `apiKey`, `priori
   - `auto` uses `/v2/team/credit-usage` when an API key is configured, otherwise `/v0/health/readiness`.
   - `credit` forces the credit endpoint; `404` falls back to readiness for older/self-hosted builds.
   - `readiness` always uses `/v0/health/readiness`.
+- The credit probe reads `data.remainingCredits`. A zero or negative balance is a `quota` probe failure, so a provider disabled for exhausted credits stays unhealthy until the balance recovers. An unparseable credit response is an `invalid_response` failure.
 - Auth is `Authorization: Bearer <key>` when a key is set. Omit the key for self-hosted instances with `USE_DB_AUTHENTICATION=false` and for Firecrawl keyless endpoints.
 - Base URL: `https://api.firecrawl.dev` for Cloud, `http://localhost:3002` for the official self-host quickstart. Do not include `/v1` or `/v2`.
 - Passthrough preserves the upstream status, body, and content type. v1 and v2 shapes are not translated.

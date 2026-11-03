@@ -56,6 +56,23 @@ function targetUrl(provider: ProviderRecord, request: Request): string {
   return `${provider.baseUrl}${url.pathname}${url.search}`;
 }
 
+function remainingCreditsFromBody(text: string): number | null {
+  try {
+    const parsed = JSON.parse(text) as {
+      data?: { remainingCredits?: unknown };
+    };
+    const value = parsed.data?.remainingCredits;
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    if (typeof value === "string" && value.trim().length > 0) {
+      const numeric = Number(value);
+      return Number.isFinite(numeric) ? numeric : null;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 async function executeSearchApiPath(
   provider: ProviderRecord,
   request: Request,
@@ -134,7 +151,7 @@ export const firecrawlAdapter: ProviderAdapter = {
     capabilities: FIRECRAWL_CAPABILITIES,
     notes: [
       "v1 and v2 paths are passed through unchanged, so responses keep Firecrawl's native shape.",
-      "Health probes use /v0/health/readiness. When an API key is configured, the credit usage endpoint validates the key too.",
+      "Health probes use /v0/health/readiness. When an API key is configured, the credit usage endpoint validates the key and reports an exhausted balance as a quota failure.",
     ],
   },
 
@@ -256,8 +273,32 @@ export const firecrawlAdapter: ProviderAdapter = {
           },
           timeout,
         );
-        const text = truncate(await response.text(), 2_000);
+        const raw = await response.text();
+        const text = truncate(raw, 2_000);
         if (response.ok) {
+          const remainingCredits = remainingCreditsFromBody(raw);
+          if (remainingCredits === null) {
+            return {
+              ok: false,
+              statusCode: response.status,
+              latencyMs: Date.now() - started,
+              body: text,
+              error: "Credit usage endpoint returned an unexpected payload",
+              hint: "Expected data.remainingCredits in the Firecrawl credit usage response.",
+              failureKind: "invalid_response",
+            };
+          }
+          if (remainingCredits <= 0) {
+            return {
+              ok: false,
+              statusCode: response.status,
+              latencyMs: Date.now() - started,
+              body: text,
+              error: `Firecrawl reports ${remainingCredits} remaining credits`,
+              hint: "Firecrawl has exhausted its credits. Add credits or wait for the plan to reset before re-enabling it.",
+              failureKind: "quota",
+            };
+          }
           return {
             ok: true,
             statusCode: response.status,

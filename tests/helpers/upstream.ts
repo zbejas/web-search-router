@@ -20,8 +20,10 @@ export interface MockUpstream {
   requests: CapturedRequest[];
   mode: MockMode;
   healthMode: "ok" | "fail";
+  creditsRemaining: number;
   setMode: (mode: MockMode) => void;
   setHealthMode: (mode: "ok" | "fail") => void;
+  setCredits: (credits: number) => void;
   close: () => void;
 }
 
@@ -45,6 +47,7 @@ export function startMockUpstream(port = 0): MockUpstream {
   const state = {
     mode: "ok" as MockMode,
     healthMode: "ok" as "ok" | "fail",
+    creditsRemaining: 1_000,
   };
 
   const server = Bun.serve({
@@ -72,7 +75,10 @@ export function startMockUpstream(port = 0): MockUpstream {
 
       if (url.pathname === "/v2/team/credit-usage") {
         if (state.mode === "ok") {
-          return Response.json({ success: true, data: { remainingCredits: 1000 } });
+          return Response.json({
+            success: true,
+            data: { remainingCredits: state.creditsRemaining },
+          });
         }
         return failureResponse(state.mode);
       }
@@ -181,11 +187,20 @@ export function startMockUpstream(port = 0): MockUpstream {
     set healthMode(value: "ok" | "fail") {
       state.healthMode = value;
     },
+    get creditsRemaining() {
+      return state.creditsRemaining;
+    },
+    set creditsRemaining(value: number) {
+      state.creditsRemaining = value;
+    },
     setMode: (mode) => {
       state.mode = mode;
     },
     setHealthMode: (mode) => {
       state.healthMode = mode;
+    },
+    setCredits: (credits) => {
+      state.creditsRemaining = credits;
     },
     close: () => server.stop(true),
   };

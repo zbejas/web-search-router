@@ -2,7 +2,11 @@ import { describe, expect, test } from "bun:test";
 import { createTestContext, request } from "../helpers/runtime";
 import { startMockUpstream } from "../helpers/upstream";
 
-async function addProvider(ctx: Awaited<ReturnType<typeof createTestContext>>, url: string) {
+async function addProvider(
+  ctx: Awaited<ReturnType<typeof createTestContext>>,
+  url: string,
+  overrides: Record<string, unknown> = {},
+) {
   const response = await request(ctx.app, "/api/providers", {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -11,6 +15,7 @@ async function addProvider(ctx: Awaited<ReturnType<typeof createTestContext>>, u
       type: "firecrawl",
       baseUrl: url,
       priority: 100,
+      ...overrides,
     }),
   });
   expect(response.status).toBe(201);
@@ -43,6 +48,46 @@ describe("health service", () => {
       const events = await ctx.runtime.providers.events("firecrawl");
       expect(events.some((event) => event.event === "auto_disabled")).toBe(true);
       expect(events.some((event) => event.event === "auto_enabled")).toBe(true);
+    } finally {
+      upstream.close();
+      ctx.close();
+    }
+  });
+
+  test("an exhausted Firecrawl credit balance keeps the provider unhealthy until credits return", async () => {
+    const ctx = await createTestContext();
+    const upstream = startMockUpstream();
+    try {
+      ctx.runtime.settings.update({ routing: { failureThreshold: 1 } });
+      await addProvider(ctx, upstream.url, { apiKey: "fc-test" });
+      upstream.setCredits(0);
+
+      const exhausted = await ctx.runtime.health.runDueChecks({ force: true });
+      expect(exhausted[0]?.ok).toBe(false);
+      expect(exhausted[0]?.failureKind).toBe("quota");
+      expect(exhausted[0]?.statusCode).toBe(200);
+      const afterFirst = await ctx.runtime.providers.getPublic("firecrawl");
+      expect(afterFirst?.health).toBe("unhealthy");
+      expect(afterFirst?.lastError).toContain("remaining credits");
+
+      const stillExhausted = await ctx.runtime.health.runDueChecks({ force: true });
+      expect(stillExhausted[0]?.ok).toBe(false);
+      expect((await ctx.runtime.providers.getPublic("firecrawl"))?.health).toBe("unhealthy");
+      expect(
+        (await ctx.runtime.providers.events("firecrawl")).filter(
+          (event) => event.event === "auto_enabled",
+        ),
+      ).toHaveLength(0);
+
+      upstream.setCredits(25);
+      const recovered = await ctx.runtime.health.runDueChecks({ force: true });
+      expect(recovered[0]?.ok).toBe(true);
+      expect((await ctx.runtime.providers.getPublic("firecrawl"))?.health).toBe("healthy");
+      expect(
+        (await ctx.runtime.providers.events("firecrawl")).some(
+          (event) => event.event === "auto_enabled",
+        ),
+      ).toBe(true);
     } finally {
       upstream.close();
       ctx.close();

@@ -120,6 +120,7 @@ The sidebar is fixed above 980 px and becomes a drawer at 980 px and below. The 
 - **Per-provider probe interval is a first-class form field.** It is a top-level `probeIntervalSeconds`, not part of the JSON config. Blank means use the global health interval; DeepSeek probes can bill.
 - **Disabling authentication is a confirmed downgrade.** The Settings toggle opens a confirmation dialog and keeps the toggle on until the user confirms.
 - **The first Access user defaults to Admin.** Creating a read-only first account would make Settings refuse to enable authentication. The empty state and dialog label the first account as the admin setup path.
+- **API keys created while auth is off belong to the hidden `system` owner.** The Access dialog states this instead of showing an owner picker; those keys remain valid after authentication is enabled.
 - **A provider secret is shown only once.** `apiKeySet`/`apiKeyHint` identify a saved key; clearing requires the “Clear saved key” checkbox, which sends `apiKey: ""`.
 - **Reorder uses the full sorted provider list, not the filtered table.** Moving a row while a filter is active still computes order across all providers.
 - **Logs are already redacted by the server.** Do not add client-side secret rendering; the body shown is what SQLite stored.

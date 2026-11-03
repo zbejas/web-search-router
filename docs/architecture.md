@@ -142,7 +142,7 @@ disabled --operator enable--> enabled, health = unknown
 | `providers` | Provider config, encrypted key, priority, enabled flag, health state, failure counters, last check metadata |
 | `provider_events` | State transitions and manual tests |
 | `settings` | Flat key/value settings (`routing.failureThreshold`, etc.) |
-| `users` | Dashboard users and bcrypt hashes |
+| `users` | Dashboard users, bcrypt hashes, and a hidden `system` API-key owner |
 | `sessions` | Session tokens with expiry |
 | `api_keys` | SHA-512 key hashes, prefix, scopes, revocation |
 | `proxy_logs` | One row per routed request, including `attempts` JSON and redacted bodies |

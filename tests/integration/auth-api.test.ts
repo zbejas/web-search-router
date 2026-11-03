@@ -58,6 +58,40 @@ describe("auth and API key enforcement", () => {
     }
   });
 
+  test("creates API keys before authentication is enabled", async () => {
+    const ctx = await createTestContext();
+    try {
+      const created = await request(ctx.app, "/api/keys", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name: "bootstrap", scopes: ["*"] }),
+      });
+      expect(created.status).toBe(201);
+      const payload = (await created.json()) as {
+        key: string;
+        userId: string;
+        username: string;
+      };
+      expect(payload.key.startsWith("wsr_")).toBe(true);
+      expect(payload.userId).toBe("system");
+      expect(payload.username).toBe("system");
+
+      const list = await request(ctx.app, "/api/keys");
+      expect(list.status).toBe(200);
+      expect((await json<unknown[]>(list)).length).toBe(1);
+
+      const users = await request(ctx.app, "/api/users");
+      expect(users.status).toBe(200);
+      expect(await json<unknown[]>(users)).toEqual([]);
+
+      const state = await request(ctx.app, "/api/auth/state");
+      const authState = (await state.json()) as { hasUsers: boolean };
+      expect(authState.hasUsers).toBe(false);
+    } finally {
+      ctx.close();
+    }
+  });
+
   test("enabling auth requires a valid router key for proxy traffic", async () => {
     const ctx = await createTestContext();
     const upstream = startMockUpstream();

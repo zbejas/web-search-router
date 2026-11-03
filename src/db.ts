@@ -125,6 +125,12 @@ function migrate(db: Database): void {
     CREATE INDEX IF NOT EXISTS idx_endpoint ON proxy_logs(endpoint_id);
   `);
 
+  // A hidden owner lets API keys exist before authentication is enabled. It is
+  // excluded from hasUsers()/listUsers() and cannot log in.
+  db.prepare(
+    "INSERT OR IGNORE INTO users (id, username, password_hash, role) VALUES ('system', 'system', '', 'system')",
+  ).run();
+
   // The OpenCode adapter was removed. Purge unsupported rows and their events so
   // an upgraded database cannot select a provider type with no adapter.
   db.exec(`

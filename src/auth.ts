@@ -25,14 +25,18 @@ export class AuthService {
 
   hasUsers(): boolean {
     return (
-      (this.db.prepare("SELECT COUNT(*) as c FROM users").get() as { c: number }).c > 0
+      (
+        this.db.prepare("SELECT COUNT(*) as c FROM users WHERE role != 'system'").get() as {
+          c: number;
+        }
+      ).c > 0
     );
   }
 
   listUsers(): (AuthUser & { created_at: string; updated_at: string })[] {
     return this.db
       .prepare(
-        "SELECT id, username, role, created_at, updated_at FROM users ORDER BY created_at ASC",
+        "SELECT id, username, role, created_at, updated_at FROM users WHERE role != 'system' ORDER BY created_at ASC",
       )
       .all() as (AuthUser & { created_at: string; updated_at: string })[];
   }
@@ -84,7 +88,7 @@ export class AuthService {
   async login(username: string, password: string): Promise<{ user: AuthUser; token: string } | null> {
     const row = this.db
       .prepare(
-        "SELECT id, username, password_hash, role FROM users WHERE username = ? AND role != 'disabled'",
+        "SELECT id, username, password_hash, role FROM users WHERE username = ? AND role NOT IN ('disabled', 'system')",
       )
       .get(username) as
       | { id: string; username: string; password_hash: string; role: string }
@@ -186,6 +190,9 @@ export class AuthService {
       .prepare("SELECT role FROM users WHERE id = ?")
       .get(userId) as { role: string } | null;
     if (!target) return false;
+    if (target.role === "system") {
+      throw new Error("Cannot delete the system owner");
+    }
     if (target.role === "admin" && admins <= 1) {
       throw new Error("Cannot delete the last admin");
     }

@@ -282,6 +282,7 @@ Time-series endpoints cap total buckets at 300. `GET /api/logs/timeseries?minute
 - **CORS is not enabled.** The dashboard is same-origin; browser clients on another origin need a proxy or a CORS layer.
 - **`/api/settings/reset` disables auth.** If you reset while relying on auth, re-enable it before leaving.
 - **`/api/keys` returns the plaintext key only in the creation response.** No endpoint can retrieve it later.
+- **Keys can be created while authentication is off.** They are owned by a hidden `system` user that is excluded from `/api/users` and `hasUsers`. The owner keeps the key valid when authentication is enabled later; it cannot log in.
 
 ## Related docs
 

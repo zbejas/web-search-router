@@ -284,6 +284,7 @@ export function AccessPage() {
         onClose={() => setKeyDialog(false)}
         users={users}
         isAdmin={isAdmin}
+        authEnabled={Boolean(state?.enabled)}
         onCreated={(key) => { setKeyDialog(false); setCreatedKey(key); load(); }}
       />
       <ResetPasswordDialog
@@ -412,12 +413,14 @@ function CreateKeyDialog({
   onClose,
   users,
   isAdmin,
+  authEnabled,
   onCreated,
 }: {
   open: boolean;
   onClose: () => void;
   users: User[];
   isAdmin: boolean;
+  authEnabled: boolean;
   onCreated: (key: CreatedKey) => void;
 }) {
   const { push } = useToast();
@@ -466,8 +469,13 @@ function CreateKeyDialog({
       <div className="space-y-4">
         {error ? <ErrorNotice message={error} /> : null}
         <Field label="Key name"><Input value={name} onChange={(event) => setName(event.target.value)} placeholder="production-client" /></Field>
-        {isAdmin && users.length > 0 ? (
+        {isAdmin && authEnabled && users.length > 0 ? (
           <Field label="Owner"><Select value={userId} onChange={(event) => setUserId(event.target.value)}><option value="">You ({users.find((user) => user.role === "admin")?.username ?? "admin"})</option>{users.map((user) => <option key={user.id} value={user.id}>{user.username}</option>)}</Select></Field>
+        ) : !authEnabled ? (
+          <p className="text-[10px] leading-relaxed text-dim">
+            Owner: system (authentication is off). The key remains valid if you enable
+            authentication later.
+          </p>
         ) : null}
         <div>
           <p className="field-label mb-2">Scopes</p>

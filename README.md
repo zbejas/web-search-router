@@ -26,7 +26,7 @@
   <a href="https://github.com/zbejas/web-search-router/commits/main"><img src="https://img.shields.io/github/last-commit/zbejas/web-search-router?style=flat-square" alt="Last commit" /></a>
 </p>
 
-<p><strong>v0.1.1</strong> · early, self-hosted, and built for operators</p>
+<p><strong>v0.1.2</strong> · early, self-hosted, and built for operators</p>
 
 </div>
 

@@ -110,6 +110,21 @@ test("search requests appear in the log explorer with an attempt chain", async (
   await expect(page.getByText("primary", { exact: true }).first()).toBeVisible();
 });
 
+test("API keys can be created before authentication is enabled", async ({ page }) => {
+  await page.goto("/#/access");
+  await page.getByRole("tab", { name: "API keys" }).click();
+  await page.getByRole("button", { name: "Generate key" }).first().click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByRole("heading", { name: "Generate API key" })).toBeVisible();
+  await dialog.getByLabel("Key name").fill("bootstrap");
+  await dialog.getByRole("button", { name: "Generate key" }).click();
+  await expect(page.getByRole("heading", { name: "API key created" })).toBeVisible();
+  await expect(page.getByText("bootstrap", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("Owner: system", { exact: false })).toBeVisible();
+  await page.getByRole("button", { name: "Done" }).click();
+  await expect(page.getByText("bootstrap", { exact: true })).toBeVisible();
+});
+
 test("command palette navigates without a pointer", async ({ page }) => {
   await page.goto("/#/overview");
   await page.keyboard.press("Control+K");

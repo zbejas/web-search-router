@@ -1,0 +1,16 @@
+node_modules
+dist
+.git
+.github
+.gitignore
+data
+.env
+.env.*
+tests
+test-results
+playwright-report
+docs
+*.png
+.hermes
+.hermes.md
+research-health-check.md

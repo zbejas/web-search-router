@@ -1,0 +1,14 @@
+node_modules/
+dist/
+data/
+.e2e-data/
+.test-data/
+.env
+.env.*
+.cache/
+.prompts/
+.playwright-mcp/
+test-results/
+playwright-report/
+*.png
+!docs/screenshots/*.png

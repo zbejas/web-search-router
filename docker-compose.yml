@@ -1,0 +1,25 @@
+services:
+  router:
+    image: ghcr.io/zbejas/web-search-router:${WSR_VERSION:-latest}
+    build: .
+    ports:
+      - "8123:8123"
+    volumes:
+      - router-data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "bun",
+          "-e",
+          "fetch('http://127.0.0.1:8123/_router/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  router-data:
+    name: web-search-router-data

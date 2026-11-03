@@ -41,6 +41,10 @@ interface Provider {
   capabilities: Capability[];
   config: Record<string, unknown>;
   probeIntervalSeconds: number | null; // per-provider override
+  creditsRemaining: number | null;     // Firecrawl credit snapshot
+  creditsPlan: number | null;
+  creditsPeriodEnd: string | null;
+  creditsCheckedAt: string | null;
   // lastCheckedAt, lastHealthyAt, lastError, lastStatusCode, lastLatencyMs,
   // requestCount, successRate, avgLatencyMs, createdAt, updatedAt
 }
@@ -70,6 +74,8 @@ Create/update payloads accept `id`, `name`, `type`, `baseUrl`, `apiKey`, `priori
   - `auto` uses `/v2/team/credit-usage` when an API key is configured, otherwise `/v0/health/readiness`.
   - `credit` forces the credit endpoint; `404` falls back to readiness for older/self-hosted builds.
   - `readiness` always uses `/v0/health/readiness`.
+- The credit probe reads `data.remainingCredits`, `data.planCredits`, and `data.billingPeriodEnd`, persists them on the provider, and exposes them in the dashboard. A zero or negative balance is a `quota` probe failure, so a provider disabled for exhausted credits stays unhealthy until the balance recovers. An unparseable credit response is an `invalid_response` failure.
+- Firecrawl providers with an API key in `auto`/`credit` mode are probed on the normal health interval even while healthy, so their credit snapshot stays current without enabling `routing.probeHealthy` for every provider type.
 - Auth is `Authorization: Bearer <key>` when a key is set. Omit the key for self-hosted instances with `USE_DB_AUTHENTICATION=false` and for Firecrawl keyless endpoints.
 - Base URL: `https://api.firecrawl.dev` for Cloud, `http://localhost:3002` for the official self-host quickstart. Do not include `/v1` or `/v2`.
 - Passthrough preserves the upstream status, body, and content type. v1 and v2 shapes are not translated.

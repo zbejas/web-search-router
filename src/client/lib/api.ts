@@ -23,6 +23,10 @@ export interface Provider {
   lastError: string | null;
   lastStatusCode: number | null;
   lastLatencyMs: number | null;
+  creditsRemaining: number | null;
+  creditsPlan: number | null;
+  creditsPeriodEnd: string | null;
+  creditsCheckedAt: string | null;
   capabilities: Capability[];
   config: Record<string, unknown>;
   probeIntervalSeconds: number | null;
@@ -172,6 +176,12 @@ export interface ProviderEvent {
   latencyMs: number | null;
 }
 
+export interface CreditState {
+  remainingCredits: number;
+  planCredits: number | null;
+  periodEnd: string | null;
+}
+
 export interface ProviderTestResult {
   providerId: string;
   providerType: ProviderType;
@@ -182,6 +192,7 @@ export interface ProviderTestResult {
   error: string | null;
   hint: string | null;
   failureKind: string | null;
+  credits?: CreditState | null;
   checkedAt: string;
   state: Provider;
 }

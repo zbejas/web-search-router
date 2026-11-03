@@ -14,11 +14,13 @@ test("overview shows the live route chain and provider health", async ({ page })
   await expect(page.getByText("Disabled fallback", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("2/2")).toBeVisible();
   await expect(page.getByText("live", { exact: true })).toBeVisible();
+  await expect(page.getByText("1,000 credits", { exact: true }).first()).toBeVisible();
   expect(errors).toEqual([]);
 });
 
 test("provider CRUD, test, disable, and delete work from the dashboard", async ({ page }) => {
   await page.goto("/#/providers");
+  await expect(page.getByText(/1,000 credits/).first()).toBeVisible();
   await page.getByRole("button", { name: "Add provider" }).click();
   const dialog = page.getByRole("dialog");
   await expect(dialog.getByRole("heading", { name: "Add a provider" })).toBeVisible();

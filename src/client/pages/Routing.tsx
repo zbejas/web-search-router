@@ -232,7 +232,7 @@ export function RoutingPage() {
               <div className="flex items-center justify-between gap-4 border-t border-line pt-3">
                 <div>
                   <p className="text-xs font-semibold text-ink">Probe healthy providers</p>
-                  <p className="mt-0.5 text-[10px] text-dim">Optional continuous checks. Off by default to avoid unnecessary provider calls.</p>
+                  <p className="mt-0.5 text-[10px] text-dim">Optional continuous checks. Firecrawl credit checks always refresh on their interval.</p>
                 </div>
                 <Toggle checked={routing.probeHealthy} onChange={(value) => update("routing", "probeHealthy", value)} label="Probe healthy providers" />
               </div>

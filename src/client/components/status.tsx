@@ -1,5 +1,6 @@
 import { Boxes, Flame, Globe2, Waves } from "lucide-react";
-import type { ProviderHealth, ProviderType } from "../lib/api";
+import type { Provider, ProviderHealth, ProviderType } from "../lib/api";
+import { formatDate, formatNumber, formatRelative } from "../lib/format";
 import { Badge, type Tone } from "./ui";
 
 export function HealthBadge({
@@ -31,6 +32,48 @@ export function StatusDot({ health, enabled = true }: { health: ProviderHealth; 
         ? "bg-bad"
         : "bg-warn";
   return <span className={`h-2 w-2 shrink-0 rounded-full ${color}`} aria-hidden="true" />;
+}
+
+export function creditTone(
+  provider: Pick<Provider, "creditsRemaining" | "creditsPlan">,
+): Tone {
+  if (provider.creditsRemaining === null) return "dim";
+  if (provider.creditsRemaining <= 0) return "bad";
+  if (
+    provider.creditsPlan !== null &&
+    provider.creditsPlan > 0 &&
+    provider.creditsRemaining / provider.creditsPlan <= 0.1
+  ) {
+    return "warn";
+  }
+  return "ok";
+}
+
+export function CreditBadge({
+  provider,
+  showPlan = false,
+}: {
+  provider: Provider;
+  showPlan?: boolean;
+}) {
+  if (provider.type !== "firecrawl" || provider.creditsRemaining === null) return null;
+  const details = [`Checked ${formatRelative(provider.creditsCheckedAt)}`];
+  if (provider.creditsPlan !== null) {
+    details.push(`Plan ${formatNumber(provider.creditsPlan)} credits`);
+  }
+  if (provider.creditsPeriodEnd) {
+    details.push(`Resets ${formatDate(provider.creditsPeriodEnd)}`);
+  }
+  return (
+    <span title={details.join(" · ")}>
+      <Badge tone={creditTone(provider)} dot>
+        {formatNumber(provider.creditsRemaining)} credits
+        {showPlan && provider.creditsPlan !== null
+          ? ` of ${formatNumber(provider.creditsPlan)}`
+          : ""}
+      </Badge>
+    </span>
+  );
 }
 
 const PROVIDER_ICONS = {

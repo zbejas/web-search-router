@@ -1,5 +1,6 @@
 import type {
   Capability,
+  CreditState,
   Operation,
   ProbeResult,
   ProviderInput,
@@ -54,6 +55,39 @@ function upstreamHeaders(
 function targetUrl(provider: ProviderRecord, request: Request): string {
   const url = new URL(request.url);
   return `${provider.baseUrl}${url.pathname}${url.search}`;
+}
+
+function finiteNumber(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim().length > 0) {
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? numeric : null;
+  }
+  return null;
+}
+
+function creditStateFromBody(text: string): CreditState | null {
+  try {
+    const parsed = JSON.parse(text) as {
+      data?: {
+        remainingCredits?: unknown;
+        planCredits?: unknown;
+        billingPeriodEnd?: unknown;
+      };
+    };
+    const remainingCredits = finiteNumber(parsed.data?.remainingCredits);
+    if (remainingCredits === null) return null;
+    return {
+      remainingCredits,
+      planCredits: finiteNumber(parsed.data?.planCredits),
+      periodEnd:
+        typeof parsed.data?.billingPeriodEnd === "string"
+          ? parsed.data.billingPeriodEnd
+          : null,
+    };
+  } catch {
+    return null;
+  }
 }
 
 async function executeSearchApiPath(
@@ -134,7 +168,7 @@ export const firecrawlAdapter: ProviderAdapter = {
     capabilities: FIRECRAWL_CAPABILITIES,
     notes: [
       "v1 and v2 paths are passed through unchanged, so responses keep Firecrawl's native shape.",
-      "Health probes use /v0/health/readiness. When an API key is configured, the credit usage endpoint validates the key too.",
+      "Health probes use /v0/health/readiness. When an API key is configured, the credit usage endpoint validates the key and reports an exhausted balance as a quota failure.",
     ],
   },
 
@@ -256,8 +290,33 @@ export const firecrawlAdapter: ProviderAdapter = {
           },
           timeout,
         );
-        const text = truncate(await response.text(), 2_000);
+        const raw = await response.text();
+        const text = truncate(raw, 2_000);
+        const credits = creditStateFromBody(raw);
         if (response.ok) {
+          if (credits === null) {
+            return {
+              ok: false,
+              statusCode: response.status,
+              latencyMs: Date.now() - started,
+              body: text,
+              error: "Credit usage endpoint returned an unexpected payload",
+              hint: "Expected data.remainingCredits in the Firecrawl credit usage response.",
+              failureKind: "invalid_response",
+            };
+          }
+          if (credits.remainingCredits <= 0) {
+            return {
+              ok: false,
+              statusCode: response.status,
+              latencyMs: Date.now() - started,
+              body: text,
+              error: `Firecrawl reports ${credits.remainingCredits} remaining credits`,
+              hint: "Firecrawl has exhausted its credits. Add credits or wait for the plan to reset before re-enabling it.",
+              failureKind: "quota",
+              credits,
+            };
+          }
           return {
             ok: true,
             statusCode: response.status,
@@ -266,6 +325,7 @@ export const firecrawlAdapter: ProviderAdapter = {
             error: null,
             hint: null,
             failureKind: null,
+            credits,
           };
         }
         // Older/self-hosted builds may not expose the billing route. Fall back
@@ -281,6 +341,7 @@ export const firecrawlAdapter: ProviderAdapter = {
           error: `Credit usage endpoint returned ${response.status}`,
           hint: hintForStatus(response.status, "Firecrawl"),
           failureKind: statusFailureKind(response.status),
+          credits,
         };
       } catch (error) {
         const message = error instanceof Error ? error.message : "Network error";

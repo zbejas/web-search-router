@@ -1,7 +1,7 @@
 import { ArrowDown, ArrowRight, ArrowUp, Ban, Clock3, FlaskConical } from "lucide-react";
 import type { Provider } from "../lib/api";
 import { formatDuration, formatPercent, formatRelative, truncate } from "../lib/format";
-import { HealthBadge, ProviderTypeMark } from "./status";
+import { CreditBadge, HealthBadge, ProviderTypeMark } from "./status";
 import { Badge, Button, EmptyState } from "./ui";
 
 export function RouteBoard({
@@ -95,6 +95,7 @@ export function RouteBoard({
                   {provider.requestCount > 0 ? formatDuration(provider.avgLatencyMs) : "—"}
                 </p>
               </div>
+              <CreditBadge provider={provider} />
               <HealthBadge health={provider.health} enabled={provider.enabled} />
               {onReorder ? (
                 <div className="flex flex-col">
@@ -163,6 +164,7 @@ export function RouteBoard({
                     <FlaskConical size={12} />
                   </Button>
                 ) : null}
+                <CreditBadge provider={provider} />
                 <HealthBadge health={provider.health} enabled={provider.enabled} />
               </div>
             </div>

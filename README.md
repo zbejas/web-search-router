@@ -26,7 +26,7 @@
   <a href="https://github.com/zbejas/web-search-router/commits/main"><img src="https://img.shields.io/github/last-commit/zbejas/web-search-router?style=flat-square" alt="Last commit" /></a>
 </p>
 
-<p><strong>v0.1.3</strong> · early, self-hosted, and built for operators</p>
+<p><strong>v0.1.4</strong> · early, self-hosted, and built for operators</p>
 
 </div>
 
@@ -50,7 +50,9 @@ Web Search Router puts one stable endpoint in front of all of them:
   provider. Client `4xx` errors pass through without disabling anyone.
 - **Self-healing health.** After `failureThreshold` consecutive failures a provider
   is auto-disabled. Probes run every `healthCheckIntervalSeconds`; a successful probe
-  re-enables it. Manual disable is always respected.
+  re-enables it. A probe that reads an exhausted Firecrawl credit balance disables the
+  provider immediately instead of waiting for the threshold. Manual disable is always
+  respected.
 - **Last-resort routing.** If every healthy provider fails, auto-disabled providers
   can be retried once before the router returns an error.
 - **Firecrawl-compatible surface.** `/v1/*` and `/v2/*` preserve native shapes.

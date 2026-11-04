@@ -67,6 +67,41 @@ describe("priority routing and failover", () => {
     }
   });
 
+  test("skips a provider whose probe found an exhausted credit balance", async () => {
+    const ctx = await createTestContext();
+    const primary = startMockUpstream();
+    const secondary = startMockUpstream();
+    try {
+      await addProvider(ctx, {
+        id: "primary",
+        type: "firecrawl",
+        baseUrl: primary.url,
+        priority: 100,
+        apiKey: "fc-test",
+      });
+      await addProvider(ctx, {
+        id: "secondary",
+        type: "firecrawl",
+        baseUrl: secondary.url,
+        priority: 10,
+      });
+
+      primary.setCredits(0);
+      await ctx.runtime.health.runDueChecks({ force: true });
+      expect((await ctx.runtime.providers.getPublic("primary"))?.health).toBe("unhealthy");
+
+      const response = await search(ctx);
+      expect(response.status).toBe(200);
+      expect(response.headers.get("x-router-provider")).toBe("secondary");
+      expect(primary.requests.filter((entry) => entry.path.startsWith("/v2/search"))).toHaveLength(0);
+      expect(secondary.requests.filter((entry) => entry.path.startsWith("/v2/search"))).toHaveLength(1);
+    } finally {
+      primary.close();
+      secondary.close();
+      ctx.close();
+    }
+  });
+
   test("fails over, auto-disables at the threshold, and skips the disabled provider next time", async () => {
     const ctx = await createTestContext();
     const primary = startMockUpstream();

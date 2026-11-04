@@ -127,6 +127,7 @@ The sidebar is fixed above 980 px and becomes a drawer at 980 px and below. The 
 - **Logs are already redacted by the server.** Do not add client-side secret rendering; the body shown is what SQLite stored.
 - **Overview chart empty state is expected on a fresh database.** Send a search or proxy request to populate it.
 - **Credit data is a probe snapshot, not live billing.** `creditsCheckedAt` states its age. Firecrawl `readiness` mode never populates credits; use `auto`/`credit` with an API key.
+- **The probe dialog explains quota failures.** A failed probe shows the failure kind, the persisted balance, and a note that an exhausted balance disables the provider immediately instead of counting toward the failure threshold; other failures keep the threshold note.
 - **`formatDate()` treats space-separated timestamps as UTC.** SQLite stores `YYYY-MM-DD HH:MM:SS`; the helper appends `T`/`Z` before parsing.
 - **The mobile drawer uses a fixed rail and a backdrop.** Do not set `overflow: hidden` on a parent of the rail; the dialog/topbar layering depends on the existing z-index order. Keep the closed rail `inert`; otherwise its controls remain in the tab order while off-screen.
 - **E2E selectors rely on accessible names.** Buttons use `aria-label` with provider names (`Test <name>`, `Disable <name>`), switches have labels, and page headings are level 2. Keep those names stable.

@@ -27,13 +27,24 @@ test("the rail spans the full page height on long pages", async ({ page }) => {
   const rail = page.locator("#primary-navigation");
   const railBox = await rail.boundingBox();
   const shellBox = await page.locator(".app-shell").boundingBox();
+  const footerBox = await page.locator(".rail-footer").boundingBox();
   const pageHeight = await page.evaluate(() => document.documentElement.scrollHeight);
 
   expect(pageHeight).toBeGreaterThan(560);
   expect(railBox).not.toBeNull();
   expect(shellBox).not.toBeNull();
+  expect(footerBox).not.toBeNull();
   expect(railBox!.height).toBeGreaterThanOrEqual(pageHeight - 1);
   expect(Math.abs(railBox!.height - shellBox!.height)).toBeLessThanOrEqual(1);
+  // The footer is anchored to the bottom of the rail, not to the viewport.
+  expect(Math.abs(railBox!.y + railBox!.height - (footerBox!.y + footerBox!.height))).toBeLessThanOrEqual(1);
+
+  // The navigation block stays pinned while the page scrolls.
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  await page.waitForTimeout(100);
+  const railTop = await page.locator(".rail-top").evaluate((element) => element.getBoundingClientRect().top);
+  expect(railTop).toBeGreaterThanOrEqual(0);
+  expect(railTop).toBeLessThan(1);
 });
 
 test("provider CRUD, test, disable, and delete work from the dashboard", async ({ page }) => {

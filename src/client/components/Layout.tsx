@@ -103,65 +103,67 @@ export function Layout({
         aria-hidden={isMobile && !mobileOpen ? true : undefined}
       >
         <div className="rail-inner">
-          <div className="flex items-center justify-between px-4 pb-3 pt-5">
-            <button
-              onClick={() => navigate("overview")}
-              className="group flex items-center gap-3 text-left"
-              aria-label="Web Search Router home"
-            >
-              <span className="grid h-9 w-9 place-items-center rounded-sm border border-accent/40 bg-accent-soft">
-                <Activity size={17} className="text-accent" />
-              </span>
-              <span>
-                <span className="block text-[12px] font-extrabold tracking-[0.16em] text-ink">
-                  WEB SEARCH
+          <div className="rail-top">
+            <div className="flex items-center justify-between px-4 pb-3 pt-5">
+              <button
+                onClick={() => navigate("overview")}
+                className="group flex items-center gap-3 text-left"
+                aria-label="Web Search Router home"
+              >
+                <span className="grid h-9 w-9 place-items-center rounded-sm border border-accent/40 bg-accent-soft">
+                  <Activity size={17} className="text-accent" />
                 </span>
-                <span className="block font-mono text-[9px] tracking-[0.34em] text-muted">ROUTER</span>
-              </span>
-            </button>
-            <button
-              className="btn btn-ghost btn-icon hidden max-[980px]:inline-flex"
-              onClick={() => setMobileOpen(false)}
-              aria-label="Close navigation"
-            >
-              <X size={17} />
-            </button>
-          </div>
-
-          <div className="mx-4 mb-4 border-y border-line py-3">
-            <div className="flex items-center justify-between">
-              <span className="mono-label">Control plane</span>
-              <Badge tone={authState?.enabled ? "ok" : "warn"} dot>
-                {authState?.enabled ? "secured" : "open"}
-              </Badge>
+                <span>
+                  <span className="block text-[12px] font-extrabold tracking-[0.16em] text-ink">
+                    WEB SEARCH
+                  </span>
+                  <span className="block font-mono text-[9px] tracking-[0.34em] text-muted">ROUTER</span>
+                </span>
+              </button>
+              <button
+                className="btn btn-ghost btn-icon hidden max-[980px]:inline-flex"
+                onClick={() => setMobileOpen(false)}
+                aria-label="Close navigation"
+              >
+                <X size={17} />
+              </button>
             </div>
-            <p className="mt-2 text-[10px] leading-relaxed text-dim">
-              {authState?.enabled
-                ? "Session and API key enforcement is active."
-                : "Auth is off. Enable it in Settings before exposing this host."}
-            </p>
+
+            <div className="mx-4 mb-4 border-y border-line py-3">
+              <div className="flex items-center justify-between">
+                <span className="mono-label">Control plane</span>
+                <Badge tone={authState?.enabled ? "ok" : "warn"} dot>
+                  {authState?.enabled ? "secured" : "open"}
+                </Badge>
+              </div>
+              <p className="mt-2 text-[10px] leading-relaxed text-dim">
+                {authState?.enabled
+                  ? "Session and API key enforcement is active."
+                  : "Auth is off. Enable it in Settings before exposing this host."}
+              </p>
+            </div>
+
+            <nav className="flex-1 space-y-0.5 px-3" aria-label="Primary">
+              {NAV_ITEMS.map((item, index) => {
+                const Icon = item.icon;
+                return (
+                  <button
+                    key={item.tab}
+                    data-first-nav={index === 0 ? true : undefined}
+                    onClick={() => navigate(item.tab)}
+                    className={`nav-item w-full ${activeTab === item.tab ? "active" : ""}`}
+                    aria-current={activeTab === item.tab ? "page" : undefined}
+                    title={item.hint}
+                  >
+                    <Icon size={15} />
+                    <span className="flex-1 text-left">{item.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
           </div>
 
-          <nav className="flex-1 space-y-0.5 px-3" aria-label="Primary">
-            {NAV_ITEMS.map((item, index) => {
-              const Icon = item.icon;
-              return (
-                <button
-                  key={item.tab}
-                  data-first-nav={index === 0 ? true : undefined}
-                  onClick={() => navigate(item.tab)}
-                  className={`nav-item w-full ${activeTab === item.tab ? "active" : ""}`}
-                  aria-current={activeTab === item.tab ? "page" : undefined}
-                  title={item.hint}
-                >
-                  <Icon size={15} />
-                  <span className="flex-1 text-left">{item.label}</span>
-                </button>
-              );
-            })}
-          </nav>
-
-          <div className="space-y-3 border-t border-line p-4">
+          <div className="rail-footer space-y-3 border-t border-line p-4">
             <div className="flex items-center justify-between">
               <span className="mono-label">Theme</span>
               <button className="btn btn-ghost btn-icon" onClick={toggle} aria-label="Toggle theme">

@@ -43,7 +43,7 @@ Fixed rem scale; no fluid display type. Page titles use tight tracking (`-0.03em
 
 ## Layout
 
-- `app-shell`: 248px rail + fluid main column. The rail ground spans the full page height; its navigation is sticky to the viewport. Max content width 1480px, 28px page padding.
+- `app-shell`: 248px rail + fluid main column. The rail spans the full page height: its navigation block is sticky and the theme/user/version footer sits at the bottom of the rail. Max content width 1480px, 28px page padding.
 - Top bar: 62px sticky, blurred ground, page title/description, command palette, date badge.
 - Panel: 4px radius, 1px hairline, 46px header, 16px body.
 - Stats: two columns on mobile, four on desktop.

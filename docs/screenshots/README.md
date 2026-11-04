@@ -6,12 +6,12 @@ These PNGs are evidence of the dashboard at a specific build, not design source 
 
 | Field | Value |
 |---|---|
-| Captured | 2026-11-04T16:07Z for `overview-dark.png`; 2026-11-03T17:12:53Z for the other files |
-| Source | v0.1.4 working tree for `overview-dark.png` (includes the full-height rail fix); v0.1.2 working tree for the other files |
+| Captured | 2026-11-04T16:15:52Z for `overview-dark.png`; 2026-11-03T17:12:53Z for the other files |
+| Source | v0.1.4 working tree for `overview-dark.png` (full-height rail with the footer anchored to the page bottom); v0.1.2 working tree for the other files |
 | Build | `bun run build`; served from `dist/` |
-| `dist/index.html` SHA-256 | `b242009022869a1abcbbc49367a28ca4571a67dd35d2e19c0d6d0f3e3450c762` (v0.1.4) / `8a1e64b9a8b01cab69a3f6844acbfabb91cf3bea0ff22bbb1fc6bd4f8f5f81f4` (v0.1.2) |
-| `dist/assets/index-*.css` SHA-256 | `a2aea89f08f494a8097bf041c0a1499f1e290eb4dfa94e1daa03f88753219054` (v0.1.4) / `1628c1e6d8d1d741a9d7e8bbdc0032efa234e7518a7c72dae03d3984cc600d56` (v0.1.2) |
-| `dist/assets/index-*.js` SHA-256 | `c051c58ffa5ed1aa97d5e693c66becd54e50743d99e9c308f78ae3910f4b1c76` (v0.1.4) / `565ebb0fc9fcce0c2654514a486c1ff316ce47d3a02ce260dc323d2820374084` (v0.1.2) |
+| `dist/index.html` SHA-256 | `56c87a045f8789e2f362baef4b1e13d81474fc9da4ffa203290926afba8219d0` (v0.1.4) / `8a1e64b9a8b01cab69a3f6844acbfabb91cf3bea0ff22bbb1fc6bd4f8f5f81f4` (v0.1.2) |
+| `dist/assets/index-*.css` SHA-256 | `91531fc1895d75b5fa2a5fd4ccae83a3cec1d511eceec319af2c62f1fd3b43a8` (v0.1.4) / `1628c1e6d8d1d741a9d7e8bbdc0032efa234e7518a7c72dae03d3984cc600d56` (v0.1.2) |
+| `dist/assets/index-*.js` SHA-256 | `67d42697a578493adbe8ed757a99b7f2357b83d31490f625e36fe03920a95de1` (v0.1.4) / `565ebb0fc9fcce0c2654514a486c1ff316ce47d3a02ce260dc323d2820374084` (v0.1.2) |
 | Browser | Playwright, Chrome channel (same as E2E) |
 | Theme | Per file below; `localStorage["wsr-theme"]` set before load |
 | Motion | Screenshot mode disables CSS animations/transitions |

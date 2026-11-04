@@ -6,7 +6,7 @@ The test strategy has three layers:
 
 1. **Unit** — pure logic and services: settings validation, secret encryption, routing selection, auth, key hashing, logger redaction, and timeseries bounds.
 2. **Integration** — the real Elysia app against real SQLite and a local mock upstream, covering routing, failover, recovery, adapters, auth enforcement, rate limiting, migration, and management APIs.
-3. **Browser E2E** — Playwright against a built dashboard and a seeded server, covering provider CRUD, policy persistence, reorder, logs, command palette, mobile overflow and drawer focus behavior, and the auth enable/login/disable flow including the disable confirmation.
+3. **Browser E2E** — Playwright against a built dashboard and a seeded server, covering provider CRUD, policy persistence, reorder, logs, command palette, the full-height rail, mobile overflow and drawer focus behavior, and the auth enable/login/disable flow including the disable confirmation.
 
 Every layer uses an isolated data directory. No test reads or writes `data/` in the repository.
 

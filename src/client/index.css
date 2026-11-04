@@ -125,16 +125,23 @@
     min-height: 100vh;
   }
 
+  /* The rail is a stretched grid column so its ground reaches the page bottom;
+     the navigation inside stays sticky to the viewport. */
   .rail {
+    position: relative;
+    background: color-mix(in srgb, var(--rail) 92%, transparent);
+    border-right: 1px solid var(--line);
+    z-index: 30;
+    backdrop-filter: blur(16px);
+  }
+
+  .rail-inner {
     position: sticky;
     top: 0;
     height: 100vh;
-    background: color-mix(in srgb, var(--rail) 92%, transparent);
-    border-right: 1px solid var(--line);
     display: flex;
     flex-direction: column;
-    z-index: 30;
-    backdrop-filter: blur(16px);
+    overflow-y: auto;
   }
 
   .main-shell {

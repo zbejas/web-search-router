@@ -18,6 +18,24 @@ test("overview shows the live route chain and provider health", async ({ page })
   expect(errors).toEqual([]);
 });
 
+test("the rail spans the full page height on long pages", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 560 });
+  await page.goto("/#/overview");
+  await expect(page.getByRole("heading", { name: "The next request has a path." })).toBeVisible();
+  await expect(page.getByText("Primary Firecrawl", { exact: true }).first()).toBeVisible();
+
+  const rail = page.locator("#primary-navigation");
+  const railBox = await rail.boundingBox();
+  const shellBox = await page.locator(".app-shell").boundingBox();
+  const pageHeight = await page.evaluate(() => document.documentElement.scrollHeight);
+
+  expect(pageHeight).toBeGreaterThan(560);
+  expect(railBox).not.toBeNull();
+  expect(shellBox).not.toBeNull();
+  expect(railBox!.height).toBeGreaterThanOrEqual(pageHeight - 1);
+  expect(Math.abs(railBox!.height - shellBox!.height)).toBeLessThanOrEqual(1);
+});
+
 test("provider CRUD, test, disable, and delete work from the dashboard", async ({ page }) => {
   await page.goto("/#/providers");
   await expect(page.getByText(/1,000 credits/).first()).toBeVisible();

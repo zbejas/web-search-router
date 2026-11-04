@@ -60,7 +60,7 @@ Shell:
 3. The `tab === ...` switch in `src/client/App.tsx`.
 4. The command palette `ITEMS` in `src/client/components/CommandPalette.tsx`.
 
-The sidebar is fixed above 980 px and becomes a drawer at 980 px and below. The closed drawer is `inert` and `aria-hidden`; the hamburger exposes `aria-expanded`/`aria-controls`, opening moves focus to the first nav item, Escape closes the drawer, and focus returns to the hamburger. The top bar shows the active page title, description, a command-palette button, and a date badge.
+The sidebar rail spans the full page height above 980 px, with its navigation sticky to the viewport, and becomes a drawer at 980 px and below. The closed drawer is `inert` and `aria-hidden`; the hamburger exposes `aria-expanded`/`aria-controls`, opening moves focus to the first nav item, Escape closes the drawer, and focus returns to the hamburger. The top bar shows the active page title, description, a command-palette button, and a date badge.
 
 ### Data loading
 

@@ -40,7 +40,7 @@ bun run test:e2e                 # playwright test
 bun run test:all                 # bun test + playwright
 ```
 
-CI runs [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) on pushes to `main` and pull requests: typecheck, unit/integration, build, and a separate Playwright E2E job. Bumping `version` in `package.json` on `main` runs [`.github/workflows/docker-publish.yml`](../.github/workflows/docker-publish.yml), which repeats the cheap gates, tags `v<version>`, and publishes a multi-arch image to GHCR unless that version is already published.
+CI runs [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) on pushes to `main` and pull requests: typecheck, unit/integration, build, and a separate Playwright E2E job. Bumping `version` in `package.json` on `main` runs [`.github/workflows/docker-publish.yml`](../.github/workflows/docker-publish.yml), which repeats the cheap gates, tags `v<version>`, publishes a multi-arch image to GHCR, and creates the GitHub release — each step skipped when it already exists.
 
 The E2E webServer command is:
 

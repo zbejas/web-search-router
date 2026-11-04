@@ -1,7 +1,9 @@
 import { chmodSync, mkdirSync } from "node:fs";
 import { resolve } from "node:path";
+import pkg from "../package.json";
 
-export const VERSION = "0.1.4";
+// package.json is the only place the version is written down.
+export const VERSION = pkg.version;
 
 export interface RuntimeConfig {
   dataDir: string;

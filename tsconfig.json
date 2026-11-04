@@ -3,6 +3,7 @@
     "target": "ESNext",
     "module": "ESNext",
     "moduleResolution": "bundler",
+    "resolveJsonModule": true,
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -11,5 +12,5 @@
     "noEmit": true,
     "types": ["bun-types"]
   },
-  "include": ["src/**/*", "tests/**/*", "playwright.config.ts"]
+  "include": ["src/**/*", "tests/**/*", "playwright.config.ts", "vite.config.ts"]
 }

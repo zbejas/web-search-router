@@ -4,6 +4,7 @@ COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
 
 FROM deps AS build
+COPY package.json ./
 COPY index.html vite.config.ts tsconfig.json ./
 COPY src ./src
 COPY public ./public
@@ -16,7 +17,8 @@ RUN bun install --frozen-lockfile --production
 
 FROM oven/bun:1-alpine AS release
 WORKDIR /app
-ARG VERSION=0.1.4
+# Supplied from package.json by the publish workflow; never hardcoded here.
+ARG VERSION=
 LABEL org.opencontainers.image.title="Web Search Router" \
       org.opencontainers.image.description="Priority routing, automatic failover, and self-healing health for web search providers." \
       org.opencontainers.image.version="${VERSION}" \

@@ -21,12 +21,12 @@
 <p>
   <a href="https://github.com/zbejas/web-search-router/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/zbejas/web-search-router/ci.yml?branch=main&label=ci&style=flat-square" alt="CI" /></a>
   <a href="https://github.com/zbejas/web-search-router/pkgs/container/web-search-router"><img src="https://img.shields.io/badge/ghcr.io-web--search--router-2496ED?style=flat-square&logo=github" alt="GHCR image" /></a>
-  <a href="https://github.com/zbejas/web-search-router/releases"><img src="https://img.shields.io/github/v/release/zbejas/web-search-router?style=flat-square" alt="Release" /></a>
+  <a href="https://github.com/zbejas/web-search-router/blob/main/package.json"><img src="https://img.shields.io/github/package-json/v/zbejas/web-search-router?style=flat-square&label=version" alt="Version" /></a>
   <a href="https://github.com/zbejas/web-search-router/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-4EAA25?style=flat-square" alt="License" /></a>
   <a href="https://github.com/zbejas/web-search-router/commits/main"><img src="https://img.shields.io/github/last-commit/zbejas/web-search-router?style=flat-square" alt="Last commit" /></a>
 </p>
 
-<p><strong>v0.1.4</strong> · early, self-hosted, and built for operators</p>
+<p>Early, self-hosted, and built for operators</p>
 
 </div>
 
@@ -184,8 +184,11 @@ The test suite uses isolated temporary data directories and a local mock upstrea
 E2E starts its own server on `127.0.0.1:4310` with a mock provider on
 `127.0.0.1:4311`. See [docs/testing.md](docs/testing.md).
 
-The image is built and published to GHCR when a `v*` tag is pushed. The workflow
-lives in [`.github/workflows/docker-publish.yml`](.github/workflows/docker-publish.yml).
+The version lives only in `package.json`; nothing else hardcodes it. CI runs on
+every push and pull request. Bumping `version` in `package.json` on `main`
+publishes `ghcr.io/zbejas/web-search-router:<version>` plus `:latest`, tags the
+commit `v<version>`, and skips the build when that image already exists. The
+workflow lives in [`.github/workflows/docker-publish.yml`](.github/workflows/docker-publish.yml).
 
 ## Documentation
 

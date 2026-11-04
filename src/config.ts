@@ -1,7 +1,7 @@
 import { chmodSync, mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 
-export const VERSION = "0.1.3";
+export const VERSION = "0.1.4";
 
 export interface RuntimeConfig {
   dataDir: string;

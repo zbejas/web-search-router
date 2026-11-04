@@ -120,6 +120,7 @@ A client error is returned to the caller unchanged when it stops the chain. If e
 ```text
 unknown --success--> healthy
 healthy --failureThreshold consecutive failures--> unhealthy
+healthy --quota probe failure (exhausted credits)--> unhealthy
 unhealthy --successful probe (autoRecoverEnabled)--> healthy
 unhealthy --successful manual test (forceRecover)--> healthy
 enabled --operator disable--> disabled (enabled = false)
@@ -128,7 +129,7 @@ disabled --operator enable--> enabled, health = unknown
 
 - `ProviderStore.recordSuccess()` resets `consecutiveFailures`, sets `health = healthy`, and records `lastHealthyAt`.
 - `ProviderStore.recordFailure()` increments the counter and marks `unhealthy` when it reaches `failureThreshold`.
-- `ProviderStore.recordProbe()` updates `lastCheckedAt`, `lastError`, `lastStatusCode`, `lastLatencyMs`, and any Firecrawl credit snapshot (`creditsRemaining`, `creditsPlan`, `creditsPeriodEnd`, `creditsCheckedAt`); success recovers when `autoRecoverEnabled` or `forceRecover` is true.
+- `ProviderStore.recordProbe()` updates `lastCheckedAt`, `lastError`, `lastStatusCode`, `lastLatencyMs`, and any Firecrawl credit snapshot (`creditsRemaining`, `creditsPlan`, `creditsPeriodEnd`, `creditsCheckedAt`); success recovers when `autoRecoverEnabled` or `forceRecover` is true. A `quota` failure disables on the first probe instead of waiting for `failureThreshold`: an exhausted balance is a proven state, and retries cannot restore it.
 - Provider events (`auto_disabled`, `auto_enabled`, `test_ok`, `test_failed`, `manual_disabled`, `manual_enabled`, `created`, `updated`, `migrated`) are written to `provider_events`.
 - `HealthService.runDueChecks()` probes enabled providers that are unhealthy/unknown, or all enabled providers when `probeHealthy` is true, and when the per-provider interval has elapsed. Healthy Firecrawl providers with an API key in `auto`/`credit` mode are also probed when due so their credit snapshot stays current. It runs four probes concurrently.
 - The scheduler ticks every second and reads the current settings, so changing `healthCheckIntervalSeconds` takes effect without a restart.

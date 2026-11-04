@@ -100,6 +100,77 @@ describe("health service", () => {
     }
   });
 
+  test("a zero credit balance disables the provider on the first probe, ahead of the failure threshold", async () => {
+    const ctx = await createTestContext();
+    const upstream = startMockUpstream();
+    try {
+      expect(ctx.runtime.settings.get().routing.failureThreshold).toBe(3);
+      await addProvider(ctx, upstream.url, { apiKey: "fc-test" });
+      expect((await ctx.runtime.health.runDueChecks({ force: true }))[0]?.ok).toBe(true);
+
+      upstream.setCredits(0);
+      const exhausted = await ctx.runtime.health.runDueChecks({ force: true });
+      expect(exhausted[0]?.ok).toBe(false);
+      expect(exhausted[0]?.failureKind).toBe("quota");
+
+      const state = await ctx.runtime.providers.getPublic("firecrawl");
+      expect(state?.health).toBe("unhealthy");
+      expect(state?.consecutiveFailures).toBe(1);
+      expect(state?.creditsRemaining).toBe(0);
+      expect(state?.lastError).toContain("0 remaining credits");
+      expect(
+        (await ctx.runtime.providers.events("firecrawl")).some(
+          (event) => event.event === "auto_disabled",
+        ),
+      ).toBe(true);
+
+      // Transient failures still honour the threshold.
+      upstream.setCredits(1_000);
+      await ctx.runtime.health.runDueChecks({ force: true });
+      expect((await ctx.runtime.providers.getPublic("firecrawl"))?.health).toBe("healthy");
+
+      upstream.setMode("fail500");
+      const firstTransient = await ctx.runtime.health.runDueChecks({ force: true });
+      expect(firstTransient[0]?.failureKind).toBe("server");
+      const afterTransient = await ctx.runtime.providers.getPublic("firecrawl");
+      expect(afterTransient?.health).toBe("healthy");
+      expect(afterTransient?.consecutiveFailures).toBe(1);
+    } finally {
+      upstream.close();
+      ctx.close();
+    }
+  });
+
+  test("the dashboard probe route reports the exhausted balance and the new health state", async () => {
+    const ctx = await createTestContext();
+    const upstream = startMockUpstream();
+    try {
+      await addProvider(ctx, upstream.url, { apiKey: "fc-test" });
+      await ctx.runtime.health.runDueChecks({ force: true });
+      upstream.setCredits(0);
+
+      const response = await request(ctx.app, "/api/providers/firecrawl/test", { method: "POST" });
+      expect(response.status).toBe(200);
+      const result = (await response.json()) as {
+        ok: boolean;
+        failureKind: string | null;
+        statusCode: number | null;
+        credits: { remainingCredits: number; planCredits: number | null } | null;
+        state: { health: string; creditsRemaining: number | null };
+      };
+      expect(result.ok).toBe(false);
+      expect(result.failureKind).toBe("quota");
+      expect(result.statusCode).toBe(200);
+      expect(result.credits?.remainingCredits).toBe(0);
+      expect(result.credits?.planCredits).toBe(5_000);
+      expect(result.state.health).toBe("unhealthy");
+      expect(result.state.creditsRemaining).toBe(0);
+    } finally {
+      upstream.close();
+      ctx.close();
+    }
+  });
+
   test("refreshes credits for a healthy Firecrawl provider on the health interval", async () => {
     const ctx = await createTestContext();
     const upstream = startMockUpstream();

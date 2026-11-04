@@ -89,7 +89,7 @@ return { dir, runtime, app, close };
 | `timeout` | Waits 2 seconds; tests set a short request timeout |
 | `invalid` | 200 with HTML, triggering `invalid_response` |
 
-The mock credit endpoint returns `data.remainingCredits` from a mutable balance plus fixed plan and billing-period metadata. Tests call `upstream.setCredits(0)` to reproduce Firecrawl's real exhausted-credit behavior: HTTP 200 with a zero balance, which the credit probe must treat as a quota failure. The E2E seed gives both Firecrawl providers an API key and `auto` probe mode so the credit badge is exercised in the browser.
+The mock credit endpoint returns `data.remainingCredits` from a mutable balance plus fixed plan and billing-period metadata. Integration tests call `upstream.setCredits(0)` to reproduce Firecrawl's real exhausted-credit behavior: HTTP 200 with a zero balance, which the credit probe must treat as a quota failure that disables the provider on the first probe even with the default `failureThreshold` of 3. Out-of-process E2E runs change the balance over HTTP with `POST http://127.0.0.1:4311/__mock/credits` and `{ "remaining": n }`; the spec sets it to zero, checks the probe dialog and the provider row, then restores `1000` and re-probes so later tests start healthy. The E2E seed gives both Firecrawl providers an API key and `auto` probe mode so the credit badge is exercised in the browser.
 
 ### E2E flow
 
@@ -137,7 +137,7 @@ Do not store a live key in the repository. Provider keys belong in the encrypted
 - **E2E has fixed ports 4310/4311.** Stop any other server on those ports before `bun run test:e2e`.
 - **E2E deletes `.e2e-data` on startup and shutdown.** Do not put manual data there.
 - **The health scheduler is off in integration tests.** `HealthService.runDueChecks({ force: true })` is the deterministic trigger; do not wait on wall-clock intervals.
-- **Time-sensitive tests set `failureThreshold: 1`.** The default of 3 means one failed probe leaves the provider `unknown`, not `unhealthy`.
+- **Time-sensitive tests set `failureThreshold: 1`.** The default of 3 means one failed probe leaves the provider `healthy` (or `unknown` before its first success), not `unhealthy`. Quota probe failures are the exception: they disable immediately, so a zero-credit test does not need a lower threshold.
 - **The mock’s `timeout` mode waits 2 seconds.** Set `routing.requestTimeoutMs` below that in the test, or the test will be slow.
 - **Playwright uses `channel: "chrome"`.** If Chrome is not installed, change `playwright.config.ts` to the bundled Chromium or add an `executablePath`.
 - **The auth E2E test must stay last in the serial file.** It changes the global auth setting and the session state for the seeded server.

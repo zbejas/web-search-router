@@ -66,6 +66,14 @@ export function startMockUpstream(port = 0): MockUpstream {
         await Bun.sleep(2_000);
       }
 
+      // Out-of-process control surface for the E2E suite, which talks to the mock
+      // over HTTP instead of holding the Bun.serve handle.
+      if (url.pathname === "/__mock/credits") {
+        const payload = body ? (JSON.parse(body) as { remaining?: unknown }) : {};
+        if (typeof payload.remaining === "number") state.creditsRemaining = payload.remaining;
+        return Response.json({ remaining: state.creditsRemaining });
+      }
+
       if (url.pathname === "/v0/health/readiness") {
         if (state.healthMode === "fail") {
           return Response.json({ status: "unhealthy" }, { status: 503 });

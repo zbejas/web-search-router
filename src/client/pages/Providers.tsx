@@ -474,7 +474,10 @@ export function ProvidersPage({
             </div>
             {!testResult.ok ? (
               <div className="flex items-center gap-2 text-[10px] text-dim">
-                <XCircle size={12} /> The provider remains subject to the configured failure threshold.
+                <XCircle size={12} />{" "}
+                {testResult.failureKind === "quota"
+                  ? "An exhausted balance marks the provider unhealthy right away; it recovers when credits return."
+                  : "The provider remains subject to the configured failure threshold."}
               </div>
             ) : null}
           </div>

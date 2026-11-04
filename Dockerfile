@@ -16,7 +16,7 @@ RUN bun install --frozen-lockfile --production
 
 FROM oven/bun:1-alpine AS release
 WORKDIR /app
-ARG VERSION=0.1.2
+ARG VERSION=0.1.4
 LABEL org.opencontainers.image.title="Web Search Router" \
       org.opencontainers.image.description="Priority routing, automatic failover, and self-healing health for web search providers." \
       org.opencontainers.image.version="${VERSION}" \

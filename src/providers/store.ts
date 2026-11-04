@@ -479,8 +479,14 @@ export class ProviderStore {
     }
 
     const failures = existing.consecutiveFailures + 1;
+    // A probe can prove a hard state rather than sample a transient one. When the
+    // upstream reports an exhausted credit balance, retrying cannot fix it and
+    // every routed request would return 402, so the provider leaves rotation on
+    // the first probe instead of waiting out the failure threshold.
+    const provenFailure = result.failureKind === "quota";
     const shouldDisable =
-      failures >= settings.routing.failureThreshold && existing.health !== "unhealthy";
+      (provenFailure || failures >= settings.routing.failureThreshold) &&
+      existing.health !== "unhealthy";
     const health = shouldDisable ? "unhealthy" : existing.health;
     this.db
       .prepare(

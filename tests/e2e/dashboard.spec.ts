@@ -112,6 +112,39 @@ test("search requests appear in the log explorer with an attempt chain", async (
   await expect(page.getByText("primary", { exact: true }).first()).toBeVisible();
 });
 
+test("an exhausted credit balance fails the probe and disables the provider", async ({ page }) => {
+  const setCredits = (remaining: number) =>
+    page.request.post("http://127.0.0.1:4311/__mock/credits", { data: { remaining } });
+
+  await setCredits(0);
+  try {
+    await page.goto("/#/providers");
+    await page.getByRole("button", { name: "Test Primary Firecrawl" }).click();
+    const dialog = page.getByRole("dialog");
+    await expect(dialog.getByRole("heading", { name: "Probe: primary" })).toBeVisible();
+    await expect(dialog.getByText("failed", { exact: true })).toBeVisible();
+    await expect(dialog.getByText("quota", { exact: true })).toBeVisible();
+    await expect(dialog.getByText("0 remaining", { exact: true })).toBeVisible();
+    await expect(
+      dialog.getByText(/exhausted balance marks the provider unhealthy right away/),
+    ).toBeVisible();
+    await dialog.getByRole("button", { name: "Close" }).last().click();
+
+    const primaryRow = page.getByRole("row", { name: /Primary Firecrawl/ });
+    await expect(primaryRow).toContainText("auto-disabled");
+    await expect(primaryRow).toContainText("0 credits of 5,000");
+  } finally {
+    await setCredits(1_000);
+  }
+
+  // Restore a healthy provider for the tests that follow.
+  await page.getByRole("button", { name: "Test Primary Firecrawl" }).click();
+  const recovered = page.getByRole("dialog");
+  await expect(recovered.getByText("healthy", { exact: true })).toBeVisible();
+  await recovered.getByRole("button", { name: "Close" }).last().click();
+  await expect(page.getByRole("row", { name: /Primary Firecrawl/ })).toContainText("healthy");
+});
+
 test("API keys can be created before authentication is enabled", async ({ page }) => {
   await page.goto("/#/access");
   await page.getByRole("tab", { name: "API keys" }).click();

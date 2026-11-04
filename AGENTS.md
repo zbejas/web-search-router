@@ -33,6 +33,7 @@ Run all three before reporting a code change. E2E uses fixed ports `4310` and `4
 - Higher `priority` wins. Manual disable is permanent; health auto-disable is recoverable.
 - Firecrawl `/v1/*` and `/v2/*` responses are passthrough; non-Firecrawl search is normalized per version.
 - Tests use isolated temp directories; never write to repository `data/`.
+- `package.json` is the only source of the version. The server imports it, the client reads a Vite `__APP_VERSION__` define, and the README badge reads it from GitHub. Bumping `version` on `main` publishes the image and tags the commit.
 - Docs live in `docs/`; update the owner doc and [`docs/README.md`](docs/README.md) with behavior changes.
 
 ## Canonical facts

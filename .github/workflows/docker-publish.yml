@@ -72,7 +72,6 @@ jobs:
           fi
 
       - name: Tag the release commit
-        if: steps.image.outputs.exists == 'false'
         run: |
           tag="v${{ steps.version.outputs.version }}"
           if git rev-parse -q --verify "refs/tags/${tag}" > /dev/null; then
@@ -101,3 +100,16 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           provenance: false
+
+      - name: Create the GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag="v${{ steps.version.outputs.version }}"
+          if gh release view "${tag}" > /dev/null 2>&1; then
+            echo "Release ${tag} already exists."
+          else
+            gh release create "${tag}" \
+              --title "Web Search Router ${tag}" \
+              --generate-notes
+          fi

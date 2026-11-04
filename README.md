@@ -185,10 +185,11 @@ E2E starts its own server on `127.0.0.1:4310` with a mock provider on
 `127.0.0.1:4311`. See [docs/testing.md](docs/testing.md).
 
 The version lives only in `package.json`; nothing else hardcodes it. CI runs on
-every push and pull request. Bumping `version` in `package.json` on `main`
-publishes `ghcr.io/zbejas/web-search-router:<version>` plus `:latest`, tags the
-commit `v<version>`, and skips the build when that image already exists. The
-workflow lives in [`.github/workflows/docker-publish.yml`](.github/workflows/docker-publish.yml).
+every push and pull request. Bumping `version` in `package.json` on `main` tags
+the commit `v<version>`, publishes `ghcr.io/zbejas/web-search-router:<version>`
+plus `:latest`, and creates the GitHub release. Re-runs are idempotent: an
+already published image, tag, or release is left alone. The workflow lives in
+[`.github/workflows/docker-publish.yml`](.github/workflows/docker-publish.yml).
 
 ## Documentation
 

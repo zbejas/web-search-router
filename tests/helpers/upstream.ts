@@ -20,9 +20,13 @@ export interface MockUpstream {
   requests: CapturedRequest[];
   mode: MockMode;
   healthMode: "ok" | "fail";
+  billingAccess: "ok" | "forbidden";
+  usageAccess: "ok" | "forbidden";
   creditsRemaining: number;
   setMode: (mode: MockMode) => void;
   setHealthMode: (mode: "ok" | "fail") => void;
+  setBillingAccess: (mode: "ok" | "forbidden") => void;
+  setUsageAccess: (mode: "ok" | "forbidden") => void;
   setCredits: (credits: number) => void;
   close: () => void;
 }
@@ -47,6 +51,8 @@ export function startMockUpstream(port = 0): MockUpstream {
   const state = {
     mode: "ok" as MockMode,
     healthMode: "ok" as "ok" | "fail",
+    billingAccess: "ok" as "ok" | "forbidden",
+    usageAccess: "ok" as "ok" | "forbidden",
     creditsRemaining: 1_000,
   };
 
@@ -147,6 +153,45 @@ export function startMockUpstream(port = 0): MockUpstream {
         });
       }
 
+      if (url.pathname === "/console/api/usage/summary") {
+        if (state.usageAccess === "forbidden") {
+          return Response.json({ _tag: "Forbidden" }, { status: 403 });
+        }
+        if (state.mode !== "ok") return failureResponse(state.mode);
+        return Response.json({
+          totalRequests: "30",
+          totalInputTokens: "0",
+          totalOutputTokens: "0",
+          totalCacheReadTokens: "0",
+          totalCacheWrite5mTokens: "0",
+          totalCacheWrite1hTokens: "0",
+          totalCostMicroCents: "1801426762",
+          services: [
+            {
+              service: "web-search",
+              totalRequests: "7",
+              totalCostMicroCents: "7000000",
+            },
+          ],
+        });
+      }
+
+      if (url.pathname === "/console/api/billing/status") {
+        if (state.billingAccess === "forbidden") {
+          return Response.json({ _tag: "Forbidden" }, { status: 403 });
+        }
+        if (state.mode !== "ok") return failureResponse(state.mode);
+        return Response.json({
+          billingMode: "pay-as-you-go",
+          mode: "pay-as-you-go",
+          balanceMicroCents: 1_234_000_000,
+          creditLimitMicroCents: null,
+          availableMicroCents: 1_000_000_000,
+          canPurchaseCredits: true,
+          canEnableAutoRecharge: true,
+        });
+      }
+
       if (url.pathname === "/" && url.searchParams.has("q")) {
         if (state.mode !== "ok") return failureResponse(state.mode);
         return Response.json({
@@ -221,6 +266,18 @@ export function startMockUpstream(port = 0): MockUpstream {
     set healthMode(value: "ok" | "fail") {
       state.healthMode = value;
     },
+    get billingAccess() {
+      return state.billingAccess;
+    },
+    set billingAccess(value: "ok" | "forbidden") {
+      state.billingAccess = value;
+    },
+    get usageAccess() {
+      return state.usageAccess;
+    },
+    set usageAccess(value: "ok" | "forbidden") {
+      state.usageAccess = value;
+    },
     get creditsRemaining() {
       return state.creditsRemaining;
     },
@@ -232,6 +289,12 @@ export function startMockUpstream(port = 0): MockUpstream {
     },
     setHealthMode: (mode) => {
       state.healthMode = mode;
+    },
+    setBillingAccess: (mode) => {
+      state.billingAccess = mode;
+    },
+    setUsageAccess: (mode) => {
+      state.usageAccess = mode;
     },
     setCredits: (credits) => {
       state.creditsRemaining = credits;

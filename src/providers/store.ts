@@ -1,5 +1,6 @@
 import type { Database } from "bun:sqlite";
 import type {
+  BillingState,
   Capability,
   CreditState,
   FailureKind,
@@ -34,6 +35,7 @@ interface ProviderRow {
   credits_plan: number | null;
   credits_period_end: string | null;
   credits_checked_at: string | null;
+  billing: string | null;
   capabilities: string;
   config: string;
   probe_interval_seconds: number | null;
@@ -85,6 +87,7 @@ function rowToRecord(row: ProviderRow, apiKey: string | null): ProviderRecord {
     creditsPlan: row.credits_plan,
     creditsPeriodEnd: row.credits_period_end,
     creditsCheckedAt: row.credits_checked_at,
+    billing: parseJson<BillingState | null>(row.billing ?? "null", null),
     capabilities: parseJson<Capability[]>(row.capabilities, []),
     config: parseJson<Record<string, unknown>>(row.config, {}),
     probeIntervalSeconds: row.probe_interval_seconds,
@@ -288,6 +291,7 @@ export class ProviderStore {
     const health = enabledChanged && merged.enabled ? "unknown" : existing.health;
     const clearCredits =
       merged.type !== "firecrawl" || input.apiKey === null || input.apiKey === "";
+    const clearBilling = typeChanged || input.apiKey !== undefined;
 
     this.db
       .prepare(
@@ -295,7 +299,7 @@ export class ProviderStore {
           name = ?, type = ?, base_url = ?, api_key = ?, api_key_hint = ?,
           priority = ?, enabled = ?, health = ?, capabilities = ?, config = ?,
           probe_interval_seconds = ?, credits_remaining = ?, credits_plan = ?,
-          credits_period_end = ?, credits_checked_at = ?, updated_at = ?
+          credits_period_end = ?, credits_checked_at = ?, billing = ?, updated_at = ?
          WHERE id = ?`,
       )
       .run(
@@ -314,6 +318,7 @@ export class ProviderStore {
         clearCredits ? null : existing.creditsPlan,
         clearCredits ? null : existing.creditsPeriodEnd,
         clearCredits ? null : existing.creditsCheckedAt,
+        clearBilling || !existing.billing ? null : JSON.stringify(existing.billing),
         nowIso(),
         id,
       );
@@ -431,6 +436,7 @@ export class ProviderStore {
       latencyMs: number;
       failureKind: FailureKind | null;
       credits?: CreditState | null;
+      billing?: BillingState | null;
     },
     settings: Settings,
     options: { forceRecover?: boolean } = {},
@@ -444,6 +450,8 @@ export class ProviderStore {
     const creditsPlan = credits ? credits.planCredits : existing.creditsPlan;
     const creditsPeriodEnd = credits ? credits.periodEnd : existing.creditsPeriodEnd;
     const creditsCheckedAt = credits ? now : existing.creditsCheckedAt;
+    const billing = result.billing === undefined ? existing.billing : result.billing;
+    const billingJson = billing ? JSON.stringify(billing) : null;
 
     if (result.ok) {
       const shouldRecover = existing.health !== "healthy" && canRecover;
@@ -454,7 +462,7 @@ export class ProviderStore {
             health = ?, consecutive_failures = ?, last_checked_at = ?,
             last_healthy_at = ?, last_error = NULL, last_status_code = ?,
             last_latency_ms = ?, credits_remaining = ?, credits_plan = ?,
-            credits_period_end = ?, credits_checked_at = ?, updated_at = ?
+            credits_period_end = ?, credits_checked_at = ?, billing = ?, updated_at = ?
            WHERE id = ?`,
         )
         .run(
@@ -468,6 +476,7 @@ export class ProviderStore {
           creditsPlan,
           creditsPeriodEnd,
           creditsCheckedAt,
+          billingJson,
           now,
           id,
         );
@@ -494,7 +503,7 @@ export class ProviderStore {
           consecutive_failures = ?, health = ?, last_checked_at = ?,
           last_error = ?, last_status_code = ?, last_latency_ms = ?,
           credits_remaining = ?, credits_plan = ?, credits_period_end = ?,
-          credits_checked_at = ?, updated_at = ?
+          credits_checked_at = ?, billing = ?, updated_at = ?
          WHERE id = ?`,
       )
       .run(
@@ -508,6 +517,7 @@ export class ProviderStore {
         creditsPlan,
         creditsPeriodEnd,
         creditsCheckedAt,
+        billingJson,
         now,
         id,
       );

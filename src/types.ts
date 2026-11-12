@@ -48,6 +48,7 @@ export interface ProviderRecord {
   creditsPlan: number | null;
   creditsPeriodEnd: string | null;
   creditsCheckedAt: string | null;
+  billing: BillingState | null;
   capabilities: Capability[];
   config: Record<string, unknown>;
   probeIntervalSeconds: number | null;
@@ -126,6 +127,19 @@ export interface CreditState {
   periodEnd: string | null;
 }
 
+/** Monetary snapshot for providers that expose spend or balance in currency. */
+export interface BillingState {
+  balanceUsd: number | null;
+  availableUsd: number | null;
+  spendUsd: number | null;
+  range: string | null;
+  webSearchRequests: number | null;
+  webSearchSpendUsd: number | null;
+  billingMode: string | null;
+  mode: string | null;
+  checkedAt: string;
+}
+
 export interface ProbeResult {
   ok: boolean;
   statusCode: number | null;
@@ -136,6 +150,7 @@ export interface ProbeResult {
   failureKind: FailureKind | null;
   creditsUsed?: number;
   credits?: CreditState | null;
+  billing?: BillingState | null;
 }
 
 export interface ProviderTestResult extends ProbeResult {

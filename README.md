@@ -151,6 +151,9 @@ The generic adapter covers web search, news, research, and developer APIs. Prese
 are starting points: each one is editable JSON, and provider-specific limits,
 billing, and response shapes are documented in [docs/providers.md](docs/providers.md).
 
+OpenCode providers also show workspace spend from the Console usage summary; the
+credit balance appears when the key has Billing read permission.
+
 Firecrawl keys and provider secrets are entered in the dashboard and encrypted with
 `data/master.key`. Back up the entire data directory; without `master.key`, saved
 keys cannot be decrypted.

@@ -1,6 +1,6 @@
 import { Boxes, Flame, Globe2, SquareTerminal, Waves } from "lucide-react";
 import type { Provider, ProviderHealth, ProviderType } from "../lib/api";
-import { formatDate, formatNumber, formatRelative } from "../lib/format";
+import { formatDate, formatMoney, formatNumber, formatRelative } from "../lib/format";
 import { Badge, type Tone } from "./ui";
 
 export function HealthBadge({
@@ -56,6 +56,45 @@ export function CreditBadge({
   provider: Provider;
   showPlan?: boolean;
 }) {
+  if (provider.type === "opencode" && provider.billing) {
+    const billing = provider.billing;
+    const rangeLabel = billing.range === "all" ? "all-time" : billing.range;
+    const details = [`Checked ${formatRelative(billing.checkedAt)}`];
+    if (billing.balanceUsd !== null) details.push(`Balance ${formatMoney(billing.balanceUsd)}`);
+    if (billing.availableUsd !== null && billing.availableUsd !== billing.balanceUsd) {
+      details.push(`Available ${formatMoney(billing.availableUsd)}`);
+    }
+    if (billing.spendUsd !== null) {
+      details.push(`Spend ${formatMoney(billing.spendUsd)} (${rangeLabel ?? "all-time"})`);
+    }
+    if (billing.webSearchSpendUsd !== null) {
+      const requests =
+        billing.webSearchRequests !== null
+          ? ` · ${formatNumber(billing.webSearchRequests)} requests`
+          : "";
+      details.push(`Web search ${formatMoney(billing.webSearchSpendUsd)}${requests}`);
+    }
+    if (billing.billingMode) details.push(`Mode ${billing.billingMode}`);
+    if (billing.balanceUsd !== null) {
+      return (
+        <span title={details.join(" · ")}>
+          <Badge tone={billing.balanceUsd <= 0 ? "bad" : "ok"} dot>
+            {formatMoney(billing.balanceUsd)} balance
+          </Badge>
+        </span>
+      );
+    }
+    if (billing.spendUsd !== null) {
+      return (
+        <span title={details.join(" · ")}>
+          <Badge tone="dim" dot>
+            {formatMoney(billing.spendUsd)} / {rangeLabel ?? "all-time"}
+          </Badge>
+        </span>
+      );
+    }
+    return null;
+  }
   if (provider.type !== "firecrawl" || provider.creditsRemaining === null) return null;
   const details = [`Checked ${formatRelative(provider.creditsCheckedAt)}`];
   if (provider.creditsPlan !== null) {

@@ -15,10 +15,10 @@ Every layer uses an isolated data directory. No test reads or writes `data/` in 
 | File | Purpose |
 |---|---|
 | `tests/helpers/runtime.ts` | `createTestContext()`: temp dir, runtime, app, cleanup; `request()`, `json()`, `cookieFrom()`. |
-| `tests/helpers/upstream.ts` | `startMockUpstream(port?)`: Bun server returning Firecrawl v1/v2, DeepSeek, OpenCode, generic, health, and usage shapes; mutable failure modes. |
+| `tests/helpers/upstream.ts` | `startMockUpstream(port?)`: Bun server returning Firecrawl v1/v2, DeepSeek, OpenCode (search, usage, billing), generic, health, and usage shapes; mutable failure modes. |
 | `tests/unit/*.test.ts` | Crypto, settings, router selection, keys, auth, logger. |
 | `tests/integration/routing.test.ts` | Priority, failover, auto-disable, recovery, last resort, manual disable, client errors, quota. |
-| `tests/integration/adapters.test.ts` | Firecrawl v1/v2, DeepSeek, OpenCode, generic GET/POST, Tavily preset, unsupported operation, invalid JSON. |
+| `tests/integration/adapters.test.ts` | Firecrawl v1/v2, DeepSeek, OpenCode (search, billing, free probe), generic GET/POST, Tavily preset, unsupported operation, invalid JSON. |
 | `tests/integration/auth-api.test.ts` | Auth disabled/open, auth enable, key requirement, scopes, revoke, login/logout, non-admin restrictions, setup guard. |
 | `tests/integration/providers-api.test.ts` | Provider CRUD, secret masking/clearing, validation, duplicate IDs, reorder, test, delete, metadata. |
 | `tests/integration/settings-logs-api.test.ts` | Settings validation/persistence/reset, log capture/redaction, filters, pagination bounds, timeseries cap, health endpoint. |

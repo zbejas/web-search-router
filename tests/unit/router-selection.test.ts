@@ -24,6 +24,7 @@ function provider(overrides: Partial<ProviderRecord>): ProviderRecord {
     creditsPlan: null,
     creditsPeriodEnd: null,
     creditsCheckedAt: null,
+    billing: null,
     capabilities: [],
     config: {},
     probeIntervalSeconds: null,

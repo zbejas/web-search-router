@@ -1,4 +1,6 @@
 import type {
+  BillingState,
+  FailureKind,
   Operation,
   ProbeResult,
   ProviderInput,
@@ -23,11 +25,37 @@ import {
 const MAX_RESULTS = 8;
 const DEFAULT_PATH = "/console/api/websearch";
 const DEFAULT_PROVIDER_ID = "opencode";
+const USAGE_PATH = "/console/api/usage/summary";
+const BILLING_PATH = "/console/api/billing/status";
+const USAGE_RANGES = ["24h", "7d", "30d", "all"] as const;
+
+type UsageRange = (typeof USAGE_RANGES)[number];
 
 interface OpenCodeConfig {
   searchPath?: string;
   providerID?: string;
   orgId?: string;
+  probeMode?: "search" | "usage";
+  usageRange?: UsageRange;
+}
+
+type BillingFields = Omit<BillingState, "checkedAt">;
+
+interface UsageSummary {
+  fields: Partial<BillingFields> | null;
+  ok: boolean;
+  statusCode: number | null;
+  latencyMs: number;
+  body: string | null;
+  error: string | null;
+  failureKind: FailureKind | null;
+}
+
+interface BillingStatus {
+  balanceUsd: number | null;
+  availableUsd: number | null;
+  billingMode: string | null;
+  mode: string | null;
 }
 
 function configOf(provider: ProviderRecord): OpenCodeConfig {
@@ -36,6 +64,20 @@ function configOf(provider: ProviderRecord): OpenCodeConfig {
 
 function asString(value: unknown): string | undefined {
   return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+function finiteNumber(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim().length > 0) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
+function usdFromMicroCents(value: unknown): number | null {
+  const microCents = finiteNumber(value);
+  return microCents === null ? null : microCents / 100_000_000;
 }
 
 function publishedAtOf(value: Record<string, unknown>): string | undefined {
@@ -63,7 +105,9 @@ function normalizeResults(payload: unknown, limit: number): SearchResult[] {
       return {
         url,
         title: asString(value.title),
-        description: content,
+        // OpenCode returns only page content. Keep it in markdown and leave the
+        // description empty so the same text is not emitted twice.
+        description: "",
         content,
         publishedAt: publishedAtOf(value),
         metadata: {},
@@ -79,12 +123,22 @@ function payloadFor(query: string, config: OpenCodeConfig): Record<string, unkno
   };
 }
 
-function requestHeaders(provider: ProviderRecord, config: OpenCodeConfig): Record<string, string> {
-  const headers: Record<string, string> = { "content-type": "application/json" };
+function readHeaders(
+  provider: ProviderRecord,
+  config: OpenCodeConfig,
+): Record<string, string> {
+  const headers: Record<string, string> = {};
   if (provider.apiKey) headers.Authorization = `Bearer ${provider.apiKey}`;
   const orgId = asString(config.orgId);
   if (orgId) headers["x-org-id"] = orgId;
   return headers;
+}
+
+function requestHeaders(
+  provider: ProviderRecord,
+  config: OpenCodeConfig,
+): Record<string, string> {
+  return { "content-type": "application/json", ...readHeaders(provider, config) };
 }
 
 function upstreamError(text: string, status: number): string {
@@ -95,6 +149,210 @@ function upstreamError(text: string, status: number): string {
     // fall through to the shared parser
   }
   return errorMessageFromBody(text, `OpenCode returned ${status}`);
+}
+
+async function fetchUsageSummary(
+  provider: ProviderRecord,
+  config: OpenCodeConfig,
+  timeoutMs: number,
+): Promise<UsageSummary> {
+  const started = Date.now();
+  const range = config.usageRange ?? "30d";
+  const empty = (error: string, failureKind: FailureKind): UsageSummary => ({
+    fields: null,
+    ok: false,
+    statusCode: null,
+    latencyMs: Date.now() - started,
+    body: null,
+    error,
+    failureKind,
+  });
+
+  try {
+    const response = await timedFetch(
+      `${provider.baseUrl}${USAGE_PATH}?range=${encodeURIComponent(range)}`,
+      { method: "GET", headers: readHeaders(provider, config) },
+      timeoutMs,
+    );
+    const fullText = await response.text();
+    const body = truncate(fullText, 2_000);
+    if (!response.ok) {
+      return {
+        fields: null,
+        ok: false,
+        statusCode: response.status,
+        latencyMs: Date.now() - started,
+        body,
+        error: upstreamError(fullText, response.status),
+        failureKind: statusFailureKind(response.status),
+      };
+    }
+
+    let payload: Record<string, unknown>;
+    try {
+      payload = JSON.parse(fullText) as Record<string, unknown>;
+    } catch {
+      return {
+        fields: null,
+        ok: false,
+        statusCode: response.status,
+        latencyMs: Date.now() - started,
+        body,
+        error: "OpenCode returned an unexpected usage payload",
+        failureKind: "invalid_response",
+      };
+    }
+
+    const services = Array.isArray(payload.services) ? payload.services : [];
+    const webSearch = services.find(
+      (item) =>
+        item !== null &&
+        typeof item === "object" &&
+        (item as Record<string, unknown>).service === "web-search",
+    ) as Record<string, unknown> | undefined;
+
+    return {
+      fields: {
+        spendUsd: usdFromMicroCents(payload.totalCostMicroCents),
+        range,
+        webSearchRequests: finiteNumber(webSearch?.totalRequests),
+        webSearchSpendUsd: usdFromMicroCents(webSearch?.totalCostMicroCents),
+      },
+      ok: true,
+      statusCode: response.status,
+      latencyMs: Date.now() - started,
+      body,
+      error: null,
+      failureKind: null,
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Network error";
+    return empty(
+      message,
+      message.toLowerCase().includes("timed out") ? "timeout" : "network",
+    );
+  }
+}
+
+async function fetchBillingStatus(
+  provider: ProviderRecord,
+  config: OpenCodeConfig,
+  timeoutMs: number,
+): Promise<BillingStatus | null> {
+  try {
+    const response = await timedFetch(
+      `${provider.baseUrl}${BILLING_PATH}`,
+      { method: "GET", headers: readHeaders(provider, config) },
+      timeoutMs,
+    );
+    if (!response.ok) return null;
+    const payload = JSON.parse(await response.text()) as Record<string, unknown>;
+    return {
+      balanceUsd: usdFromMicroCents(payload.balanceMicroCents),
+      availableUsd: usdFromMicroCents(payload.availableMicroCents),
+      billingMode: asString(payload.billingMode) ?? null,
+      mode: asString(payload.mode) ?? null,
+    };
+  } catch {
+    // Billing is auxiliary. A key without Billing read returns 403 and the
+    // provider still reports spend from the usage summary.
+    return null;
+  }
+}
+
+function combineBilling(
+  usage: UsageSummary,
+  status: BillingStatus | null,
+): BillingState | null {
+  if (!usage.fields && !status) return null;
+  return {
+    balanceUsd: status?.balanceUsd ?? null,
+    availableUsd: status?.availableUsd ?? null,
+    spendUsd: usage.fields?.spendUsd ?? null,
+    range: usage.fields?.range ?? null,
+    webSearchRequests: usage.fields?.webSearchRequests ?? null,
+    webSearchSpendUsd: usage.fields?.webSearchSpendUsd ?? null,
+    billingMode: status?.billingMode ?? null,
+    mode: status?.mode ?? null,
+    checkedAt: new Date().toISOString(),
+  };
+}
+
+async function runSearchProbe(
+  provider: ProviderRecord,
+  config: OpenCodeConfig,
+  settings: Settings,
+): Promise<ProbeResult> {
+  const started = Date.now();
+  try {
+    const response = await timedFetch(
+      `${provider.baseUrl}${config.searchPath ?? DEFAULT_PATH}`,
+      {
+        method: "POST",
+        headers: requestHeaders(provider, config),
+        body: JSON.stringify(payloadFor("web search router health check", config)),
+      },
+      settings.routing.probeTimeoutMs,
+    );
+    const fullText = await response.text();
+    const text = truncate(fullText, 2_000);
+    if (!response.ok) {
+      return {
+        ok: false,
+        statusCode: response.status,
+        latencyMs: Date.now() - started,
+        body: text,
+        error: upstreamError(fullText, response.status),
+        hint: hintForStatus(response.status, "OpenCode"),
+        failureKind: statusFailureKind(response.status),
+      };
+    }
+    let parsed: { results?: unknown };
+    try {
+      parsed = JSON.parse(fullText) as { results?: unknown };
+    } catch {
+      return {
+        ok: false,
+        statusCode: response.status,
+        latencyMs: Date.now() - started,
+        body: text,
+        error: "OpenCode returned an unexpected payload",
+        hint: "Expected a JSON body with a results array.",
+        failureKind: "invalid_response",
+      };
+    }
+    if (!Array.isArray(parsed.results)) {
+      return {
+        ok: false,
+        statusCode: response.status,
+        latencyMs: Date.now() - started,
+        body: text,
+        error: "OpenCode returned an unexpected payload",
+        hint: "Expected a results array. Check the base URL and search path.",
+        failureKind: "invalid_response",
+      };
+    }
+    return {
+      ok: true,
+      statusCode: response.status,
+      latencyMs: Date.now() - started,
+      body: text,
+      error: null,
+      hint: null,
+      failureKind: null,
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Network error";
+    return {
+      ok: false,
+      statusCode: null,
+      latencyMs: Date.now() - started,
+      body: null,
+      error: message,
+      hint: "Could not reach the OpenCode web search endpoint.",
+      failureKind: message.toLowerCase().includes("timed out") ? "timeout" : "network",
+    };
+  }
 }
 
 export const opencodeAdapter: ProviderAdapter = {
@@ -116,7 +374,8 @@ export const opencodeAdapter: ProviderAdapter = {
     notes: [
       "Enable Hosted Web Search for the workspace in OpenCode Console before adding the provider.",
       "Each successful search costs $0.01 and returns at most eight results.",
-      "Health probes issue a one-result search; successful probes are billed $0.01.",
+      "Billing reads the workspace usage summary; the credit balance is shown only when the key can read Billing.",
+      "Health probes use the free usage summary by default. Set probeMode to search to test the paid search path.",
       "Set config.orgId to send x-org-id when the key can access more than one workspace.",
     ],
   },
@@ -143,6 +402,19 @@ export const opencodeAdapter: ProviderAdapter = {
     }
     if (config.orgId !== undefined && typeof config.orgId !== "string") {
       issues.push("Organization ID must be a string");
+    }
+    if (
+      config.probeMode !== undefined &&
+      config.probeMode !== "search" &&
+      config.probeMode !== "usage"
+    ) {
+      issues.push('Probe mode must be "search" or "usage"');
+    }
+    if (
+      config.usageRange !== undefined &&
+      !USAGE_RANGES.includes(config.usageRange)
+    ) {
+      issues.push("Usage range must be one of: 24h, 7d, 30d, all");
     }
     return issues;
   },
@@ -241,76 +513,52 @@ export const opencodeAdapter: ProviderAdapter = {
   },
 
   async probe(provider, settings): Promise<ProbeResult> {
-    const started = Date.now();
     const config = configOf(provider);
-    try {
-      const response = await timedFetch(
-        `${provider.baseUrl}${config.searchPath ?? DEFAULT_PATH}`,
-        {
-          method: "POST",
-          headers: requestHeaders(provider, config),
-          body: JSON.stringify(payloadFor("web search router health check", config)),
-        },
-        settings.routing.probeTimeoutMs,
-      );
-      const fullText = await response.text();
-      const text = truncate(fullText, 2_000);
-      if (!response.ok) {
+    const timeout = settings.routing.probeTimeoutMs;
+    const mode = config.probeMode ?? "usage";
+
+    if (mode !== "search") {
+      const [usage, status] = await Promise.all([
+        fetchUsageSummary(provider, config, timeout),
+        fetchBillingStatus(provider, config, timeout),
+      ]);
+      const billing = combineBilling(usage, status);
+      if (usage.ok) {
         return {
-          ok: false,
-          statusCode: response.status,
-          latencyMs: Date.now() - started,
-          body: text,
-          error: upstreamError(fullText, response.status),
-          hint: hintForStatus(response.status, "OpenCode"),
-          failureKind: statusFailureKind(response.status),
+          ok: true,
+          statusCode: usage.statusCode,
+          latencyMs: usage.latencyMs,
+          body: usage.body,
+          error: null,
+          hint: null,
+          failureKind: null,
+          billing: billing ?? undefined,
         };
       }
-      let parsed: { results?: unknown };
-      try {
-        parsed = JSON.parse(fullText) as { results?: unknown };
-      } catch {
+      if (usage.failureKind !== "auth" && usage.failureKind !== "client") {
         return {
           ok: false,
-          statusCode: response.status,
-          latencyMs: Date.now() - started,
-          body: text,
-          error: "OpenCode returned an unexpected payload",
-          hint: "Expected a JSON body with a results array.",
-          failureKind: "invalid_response",
+          statusCode: usage.statusCode,
+          latencyMs: usage.latencyMs,
+          body: usage.body,
+          error: usage.error,
+          hint: hintForStatus(usage.statusCode ?? 0, "OpenCode"),
+          failureKind: usage.failureKind,
+          billing: billing ?? undefined,
         };
       }
-      if (!Array.isArray(parsed.results)) {
-        return {
-          ok: false,
-          statusCode: response.status,
-          latencyMs: Date.now() - started,
-          body: text,
-          error: "OpenCode returned an unexpected payload",
-          hint: "Expected a results array. Check the base URL and search path.",
-          failureKind: "invalid_response",
-        };
-      }
-      return {
-        ok: true,
-        statusCode: response.status,
-        latencyMs: Date.now() - started,
-        body: text,
-        error: null,
-        hint: null,
-        failureKind: null,
-      };
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Network error";
-      return {
-        ok: false,
-        statusCode: null,
-        latencyMs: Date.now() - started,
-        body: null,
-        error: message,
-        hint: "Could not reach the OpenCode web search endpoint.",
-        failureKind: message.toLowerCase().includes("timed out") ? "timeout" : "network",
-      };
+      // A key or deployment may not expose the usage summary. Fall back to the
+      // search probe rather than marking a working provider unhealthy.
+      const result = await runSearchProbe(provider, config, settings);
+      return billing ? { ...result, billing } : result;
     }
+
+    const [result, usage, status] = await Promise.all([
+      runSearchProbe(provider, config, settings),
+      fetchUsageSummary(provider, config, timeout),
+      fetchBillingStatus(provider, config, timeout),
+    ]);
+    const billing = combineBilling(usage, status);
+    return billing ? { ...result, billing } : result;
   },
 };

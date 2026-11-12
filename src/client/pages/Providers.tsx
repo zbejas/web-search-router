@@ -16,7 +16,7 @@ import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../hooks/useToast";
 import type { Provider, ProviderTestResult, ProviderType, ProviderTypeMeta } from "../lib/api";
 import { api } from "../lib/api";
-import { formatDate, formatDuration, formatNumber, formatPercent, formatRelative, truncate } from "../lib/format";
+import { formatDate, formatDuration, formatMoney, formatNumber, formatPercent, formatRelative, truncate } from "../lib/format";
 import { ProviderForm } from "../components/ProviderForm";
 import { CreditBadge, HealthBadge, ProviderTypeMark } from "../components/status";
 import {
@@ -281,7 +281,7 @@ export function ProvidersPage({
                   <th>Status</th>
                   <th>Base URL</th>
                   <th>Key</th>
-                  <th className="text-right">Credits</th>
+                  <th className="text-right">Billing</th>
                   <th className="text-right">Requests</th>
                   <th className="text-right">Success</th>
                   <th className="text-right">Avg</th>
@@ -348,12 +348,14 @@ export function ProvidersPage({
                       </span>
                     </td>
                     <td className="text-right">
-                      {provider.type === "firecrawl" && provider.creditsRemaining !== null ? (
+                      {provider.creditsRemaining !== null || provider.billing !== null ? (
                         <div className="flex flex-col items-end gap-1">
                           <CreditBadge provider={provider} showPlan />
                           <span className="font-mono text-[9px] text-dim">
-                            {provider.creditsCheckedAt
-                              ? formatRelative(provider.creditsCheckedAt)
+                            {provider.billing?.checkedAt || provider.creditsCheckedAt
+                              ? formatRelative(
+                                  provider.billing?.checkedAt ?? provider.creditsCheckedAt,
+                                )
                               : "never checked"}
                           </span>
                         </div>
@@ -462,6 +464,37 @@ export function ProvidersPage({
                 {testResult.credits.periodEnd ? (
                   <span className="font-mono text-[10px] text-dim">
                     resets {formatDate(testResult.credits.periodEnd)}
+                  </span>
+                ) : null}
+              </div>
+            ) : null}
+            {testResult.billing ? (
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-sm border border-line bg-bg px-3 py-2">
+                <span className="mono-label">Billing</span>
+                {testResult.billing.balanceUsd !== null ? (
+                  <span className="font-mono text-[11px] text-ink">
+                    {formatMoney(testResult.billing.balanceUsd)} balance
+                  </span>
+                ) : null}
+                {testResult.billing.spendUsd !== null ? (
+                  <span className="font-mono text-[10px] text-muted">
+                    {formatMoney(testResult.billing.spendUsd)} spend
+                    {testResult.billing.range
+                      ? ` (${testResult.billing.range === "all" ? "all-time" : testResult.billing.range})`
+                      : ""}
+                  </span>
+                ) : null}
+                {testResult.billing.webSearchSpendUsd !== null ? (
+                  <span className="font-mono text-[10px] text-dim">
+                    {formatMoney(testResult.billing.webSearchSpendUsd)} web search
+                    {testResult.billing.webSearchRequests !== null
+                      ? ` · ${formatNumber(testResult.billing.webSearchRequests)} requests`
+                      : ""}
+                  </span>
+                ) : null}
+                {testResult.billing.mode ? (
+                  <span className="font-mono text-[10px] text-dim">
+                    {testResult.billing.mode}
                   </span>
                 ) : null}
               </div>

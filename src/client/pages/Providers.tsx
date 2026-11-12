@@ -476,17 +476,12 @@ export function ProvidersPage({
                     {formatMoney(testResult.billing.balanceUsd)} balance
                   </span>
                 ) : null}
-                {testResult.billing.spendUsd !== null ? (
-                  <span className="font-mono text-[10px] text-muted">
-                    {formatMoney(testResult.billing.spendUsd)} spend
-                    {testResult.billing.range
-                      ? ` (${testResult.billing.range === "all" ? "all-time" : testResult.billing.range})`
-                      : ""}
-                  </span>
-                ) : null}
                 {testResult.billing.webSearchSpendUsd !== null ? (
                   <span className="font-mono text-[10px] text-dim">
                     {formatMoney(testResult.billing.webSearchSpendUsd)} web search
+                    {testResult.billing.range
+                      ? ` (${testResult.billing.range === "all" ? "all-time" : testResult.billing.range})`
+                      : ""}
                     {testResult.billing.webSearchRequests !== null
                       ? ` · ${formatNumber(testResult.billing.webSearchRequests)} requests`
                       : ""}

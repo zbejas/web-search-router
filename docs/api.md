@@ -233,7 +233,7 @@ Responses never include `apiKey`; they include `apiKeySet` and `apiKeyHint` (las
 
 Firecrawl providers also include the latest credit snapshot from their health probe: `creditsRemaining`, `creditsPlan`, `creditsPeriodEnd`, and `creditsCheckedAt`. These are `null` until an `auto`/`credit` probe succeeds, and are cleared when a provider stops being Firecrawl or its API key is removed. `POST /api/providers/:id/test` includes the probe's `credits` object.
 
-OpenCode providers include a `billing` snapshot: `balanceUsd`, `availableUsd`, `spendUsd`, `range`, `webSearchRequests`, `webSearchSpendUsd`, `billingMode`, `mode`, and `checkedAt`. Spend requires Usage read; the balance fields stay `null` when the key lacks Billing read. `POST /api/providers/:id/test` includes the probe's `billing` object.
+OpenCode providers include a `billing` snapshot: `balanceUsd`, `availableUsd`, `spendUsd`, `range`, `webSearchRequests`, `webSearchSpendUsd`, `billingMode`, `mode`, and `checkedAt`. Spend requires Usage read; the balance fields stay `null` when the key lacks Billing read. `POST /api/providers/:id/test` includes the probe's `billing` object. The dashboard surfaces only `webSearchSpendUsd` (the spend this service causes); `spendUsd` (the workspace total, including inference) remains in the payload for consumers that want it.
 
 ### Settings payload
 

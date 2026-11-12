@@ -73,6 +73,7 @@ The sidebar rail spans the full page height above 980 px: the navigation block i
 - A failed initial load renders `LoadError` with Retry, never an empty state or an endless skeleton. Empty states are reserved for successful zero-result responses.
 - Overview counts only `health === "healthy"` as healthy. Unverified and auto-disabled providers are reported separately; zero-traffic rates and latencies render as `—`, not `0%`/`0ms`.
 - Firecrawl providers expose a credit snapshot from the `/v2/team/credit-usage` probe. `CreditBadge` shows remaining credits in the route board and provider table; the badge tooltip carries the plan size, reset date, and last check time. Zero credits render as bad; the last tenth of the plan renders as a warning.
+- OpenCode providers expose a billing snapshot from the Console probe. Without a balance, `CreditBadge` shows the **web-search spend** for the configured usage range (`$X / 30d`); the tooltip lists the web-search spend + request count, available balance, and billing mode. The provider test panel's Billing row shows the same web-search figure. The workspace total spend is deliberately not displayed (it includes inference this router does not cause).
 
 ### Design system
 

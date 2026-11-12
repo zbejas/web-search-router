@@ -64,9 +64,6 @@ export function CreditBadge({
     if (billing.availableUsd !== null && billing.availableUsd !== billing.balanceUsd) {
       details.push(`Available ${formatMoney(billing.availableUsd)}`);
     }
-    if (billing.spendUsd !== null) {
-      details.push(`Spend ${formatMoney(billing.spendUsd)} (${rangeLabel ?? "all-time"})`);
-    }
     if (billing.webSearchSpendUsd !== null) {
       const requests =
         billing.webSearchRequests !== null
@@ -84,11 +81,13 @@ export function CreditBadge({
         </span>
       );
     }
-    if (billing.spendUsd !== null) {
+    // Only the web-search slice is surfaced: the workspace total also covers
+    // inference and other Console usage, which this service does not cause.
+    if (billing.webSearchSpendUsd !== null) {
       return (
         <span title={details.join(" · ")}>
           <Badge tone="dim" dot>
-            {formatMoney(billing.spendUsd)} / {rangeLabel ?? "all-time"}
+            {formatMoney(billing.webSearchSpendUsd)} / {rangeLabel ?? "all-time"}
           </Badge>
         </span>
       );

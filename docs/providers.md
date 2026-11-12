@@ -131,8 +131,8 @@ The probe also reads two Console endpoints for money:
 | `GET /console/api/billing/status` | `balanceMicroCents`, `availableMicroCents`, billing mode | **Billing › Read** |
 
 - Amounts are micro-cents; the adapter divides by `100,000,000` to store USD.
-- A key without **Billing › Read** gets `403` from the balance endpoint. The adapter ignores that response and still reports spend from the usage summary. The dashboard shows `$X / 30d` instead of a balance.
-- The usage summary totals the whole workspace, including inference. The tooltip and provider test panel also show the `web-search` share.
+- A key without **Billing › Read** gets `403` from the balance endpoint. The adapter ignores that response and still reports spend from the usage summary. With no balance, the dashboard badge shows the **web-search slice** (`$X / 30d`) instead of the workspace total.
+- The usage summary totals the whole workspace, including inference; the dashboard surfaces only the `web-search` share (badge, tooltip, and provider test panel) because that is the spend this router causes. `spendUsd` remains in the API payload for consumers that want the total.
 - Probe billing reads are free; only the search probe is billed.
 
 ### Generic REST

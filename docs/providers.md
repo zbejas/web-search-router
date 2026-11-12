@@ -15,6 +15,7 @@ The adapter registry is the only place that knows about provider-specific HTTP s
 | `src/providers/shared.ts` | Shared search-body parsing, status classification, timed fetch, error hints. |
 | `src/providers/firecrawl.ts` | Firecrawl passthrough, `/api/search` bridge, readiness/credit probes. |
 | `src/providers/deepseek.ts` | DeepSeek `/v1/tools/search` adapter. |
+| `src/providers/opencode.ts` | OpenCode Console `/console/api/websearch` adapter. |
 | `src/providers/generic.ts` | Config-driven REST search adapter and presets. |
 | `src/providers/search.ts` | Firecrawl v1/v2 search response builders. |
 | `src/providers/store.ts` | Provider CRUD, validation, encryption, health transitions, events. |
@@ -30,7 +31,7 @@ The adapter registry is the only place that knows about provider-specific HTTP s
 interface Provider {
   id: string;                 // slug, immutable after creation
   name: string;
-  type: "firecrawl" | "deepseek" | "generic";
+  type: "firecrawl" | "deepseek" | "opencode" | "generic";
   baseUrl: string;            // scheme + host, no /v1 or /v2 suffix
   apiKeySet: boolean;         // secret never returned by the API
   apiKeyHint: string | null;  // last 4 characters
@@ -58,6 +59,7 @@ Create/update payloads accept `id`, `name`, `type`, `baseUrl`, `apiKey`, `priori
 |---|---|---|
 | `firecrawl` | `search`, `scrape`, `crawl`, `map`, `extract`, `batch_scrape`, `proxy` | `/v1/*` and `/v2/*` passthrough; `/api/search` bridged to `/v2/search`. |
 | `deepseek` | `search` | Same search paths. |
+| `opencode` | `search` | Same search paths. |
 | `generic` | `search` | Same search paths. |
 
 `proxy` covers unrecognized `/v1/*` or `/v2/*` paths such as `/v1/team/credit-usage`. Only Firecrawl supports it. A request for an operation no enabled provider supports returns `501` with a message naming the operation.
@@ -95,6 +97,25 @@ Create/update payloads accept `id`, `name`, `type`, `baseUrl`, `apiKey`, `priori
 - Response fields map to: `url`, `title`, `description` (`snippet` or `summary`), `content` (`content` or `summary`), `siteName`, `publishedAt`, `score` (`rerank_score`).
 - `probeMode`: `"search"` (default) issues a one-result search; `"models"` uses `GET /models` for a cheaper auth/liveness check.
 - DeepSeek bills successful search requests. Probes are not free.
+
+### OpenCode
+
+```json
+{
+  "searchPath": "/console/api/websearch",
+  "providerID": "opencode",
+  "orgId": "<workspace or org id>"
+}
+```
+
+- Calls `POST https://opencode.ai/console/api/websearch` with `Authorization: Bearer <key>`.
+- Request body: `{ query, providerID }`. `providerID` defaults to `opencode`; other values are rejected upstream with `400`.
+- Optional `orgId` is sent as `x-org-id` for keys that can access more than one workspace.
+- Response fields map to: `url`, `title`, `content`, and `publishedAt` (`time.published`, epoch milliseconds converted to ISO 8601).
+- Returns at most eight results; larger `limit` values are clamped to eight.
+- Error bodies use `{"_tag":"Unauthorized"}` or `{"_tag":"BadRequest"}`; the adapter reports them as `OpenCode returned <status> (<tag>)`.
+- Enable **Hosted Web Search** for the workspace in OpenCode Console first. Each successful search costs $0.01.
+- The health probe issues a one-result search and costs $0.01 when it succeeds. There is no free liveness endpoint.
 
 ### Generic REST
 
@@ -235,7 +256,7 @@ interface ProviderAdapter {
 - **Base URLs never include `/v1` or `/v2`.** Paths are appended by the adapter or preserved from the incoming request. Trailing slashes are stripped by the provider store.
 - **Firecrawl self-hosted may not expose team/billing routes.** `probeMode: "auto"` falls back to `/v0/health/readiness` when credit usage returns `404`.
 - **Firecrawl probes do not validate auth in readiness mode.** Use `probeMode: "auto"`/`"credit"` with a Cloud key so the credit endpoint validates the key; a bad key will fail the probe.
-- **DeepSeek probes cost money.** A one-result search is billed if successful. Use `probeMode: "models"` if you prefer auth-only liveness at the cost of not testing the search path.
+- **DeepSeek and OpenCode probes cost money.** A one-result search is billed if successful. OpenCode bills $0.01 per successful search. Use DeepSeek `probeMode: "models"` for a cheaper auth check; OpenCode has no free liveness endpoint.
 - **Generic preset mapping is path-based, not schema-based.** If a provider changes its response shape, update `resultsPath`/`fields`; no code change is needed.
 - **A generic provider with no `search` config is rejected.** Use the `custom` preset or send a complete `search` object.
 - **Capabilities are derived from the adapter, not from config.** Changing `config` does not make a search-only provider handle scrape.

@@ -182,7 +182,7 @@ describe("provider management API", () => {
         presets?: { id: string }[];
       }[];
       expect(types.map((type) => type.type)).toEqual(
-        expect.arrayContaining(["firecrawl", "deepseek", "generic"]),
+        expect.arrayContaining(["firecrawl", "deepseek", "opencode", "generic"]),
       );
       const generic = types.find((type) => type.type === "generic");
       expect(generic?.presets?.map((preset) => preset.id)).toEqual(

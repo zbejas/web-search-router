@@ -58,7 +58,7 @@ Fixed rem scale; no fluid display type. Page titles use tight tracking (`-0.03em
 - **Badge** — 2px radius, 21px high, mono 9px uppercase; semantic tinted border/background; optional 5px dot.
 - **Panel** — ruled module; header carries a mono eyebrow and title; body is free-form.
 - **Route row** — signature component; priority box, live badge, provider mark, base URL, request/success/avg metrics, health badge. Standby rows are labeled and muted.
-- **Provider mark** — 26–28px outline square with a type icon (Firecrawl flame, DeepSeek waves, generic globe).
+- **Provider mark** — 26–28px outline square with a type icon (Firecrawl flame, DeepSeek waves, OpenCode terminal, generic globe).
 - **Dialog** — Radix portal; overlay blur; 680px default, 860px wide; title + description + body + footer.
 - **Toggle** — 38×22px track; amber when on; dark field when off.
 - **Toast** — bottom-right, 360px max, semantic icon, 4.5s auto-dismiss.
@@ -75,7 +75,7 @@ Fixed rem scale; no fluid display type. Page titles use tight tracking (`-0.03em
 
 - Direct, operational, honest. “Higher numbers are tried first.” “A successful probe moves an auto-disabled provider back to healthy.”
 - No marketing superlatives, invented benchmarks, or false availability claims.
-- Provider limitations are stated in the UI and docs: DeepSeek probes cost money, and generic mappings depend on the upstream JSON shape.
+- Provider limitations are stated in the UI and docs: DeepSeek and OpenCode probes cost money, and generic mappings depend on the upstream JSON shape.
 - Numbers use tabular figures and localized formatting; dates are relative where recency matters (`just now`, `30s ago`) and absolute in logs.
 
 ## Implementation

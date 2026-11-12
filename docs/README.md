@@ -18,7 +18,7 @@ Engineering documentation for the self-hosted web search routing service. The do
 | [`product.md`](product.md) | Users, purpose, constraints, product principles | You are changing scope or user-facing behavior |
 | [`design.md`](design.md) | Visual system, components, responsive rules | You are changing the dashboard |
 | [`architecture.md`](architecture.md) | Runtime construction, routing engine, health state machine, persistence, logging | You are changing request flow, provider selection, or health behavior |
-| [`providers.md`](providers.md) | Provider model, adapter registry, Firecrawl/DeepSeek/generic config, probe modes, adding an adapter | You are adding or debugging a provider type |
+| [`providers.md`](providers.md) | Provider model, adapter registry, Firecrawl/DeepSeek/OpenCode/generic config, probe modes, adding an adapter | You are adding or debugging a provider type |
 | [`api.md`](api.md) | Proxy routes, unified search, management endpoints, auth, errors, headers, scopes | You are integrating a client or changing an endpoint |
 | [`ui.md`](ui.md) | React dashboard structure, pages, data flow, design tokens, responsive behavior | You are changing the dashboard |
 | [`testing.md`](testing.md) | Unit, integration, browser E2E, isolation, mock upstream, live smoke tests | You are adding tests or debugging CI |

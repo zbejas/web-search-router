@@ -261,7 +261,7 @@ export function ProvidersPage({
         ) : providers.length === 0 ? (
           <EmptyState
             title="No providers configured"
-            description="The router has nowhere to send traffic. Add Firecrawl, DeepSeek Search, or a generic REST provider."
+            description="The router has nowhere to send traffic. Add Firecrawl, DeepSeek Search, OpenCode Web Search, or a generic REST provider."
             action={
               <Button variant="primary" onClick={() => { setEditing(null); setFormOpen(true); }} disabled={!isAdmin}>
                 <Plus size={14} /> Add the first provider

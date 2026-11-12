@@ -71,6 +71,111 @@ describe("provider adapters", () => {
     }
   });
 
+  test("OpenCode maps hosted search results and sends auth and org headers", async () => {
+    const ctx = await createTestContext();
+    const upstream = startMockUpstream();
+    try {
+      await addProvider(ctx, {
+        id: "opencode",
+        type: "opencode",
+        baseUrl: upstream.url,
+        apiKey: "oc_sk_test",
+        priority: 100,
+        config: { orgId: "org-test" },
+      });
+
+      const v2 = await postSearch(ctx, "/v2/search", {
+        query: "latest bun release",
+        limit: 1,
+      });
+      expect(v2.status).toBe(200);
+      const v2Payload = (await v2.json()) as {
+        data: {
+          web: {
+            title: string;
+            url: string;
+            markdown: string;
+            metadata: { publishedAt?: string };
+          }[];
+        };
+        creditsUsed: number;
+      };
+      expect(v2Payload.data.web).toHaveLength(1);
+      expect(v2Payload.data.web[0]?.title).toBe("OpenCode mock");
+      expect(v2Payload.data.web[0]?.url).toBe("https://example.com/opencode");
+      expect(v2Payload.data.web[0]?.markdown).toBe("An OpenCode hosted search result");
+      expect(v2Payload.data.web[0]?.metadata.publishedAt).toBe("2026-10-22T00:00:00.000Z");
+      expect(v2Payload.creditsUsed).toBe(0);
+
+      const opencodeRequest = upstream.requests.find(
+        (entry) => entry.path === "/console/api/websearch",
+      );
+      expect(opencodeRequest?.headers.authorization).toBe("Bearer oc_sk_test");
+      expect(opencodeRequest?.headers["x-org-id"]).toBe("org-test");
+      const body = JSON.parse(opencodeRequest!.body!) as Record<string, unknown>;
+      expect(body).toEqual({ query: "latest bun release", providerID: "opencode" });
+    } finally {
+      upstream.close();
+      ctx.close();
+    }
+  });
+
+  test("OpenCode probe posts a health search", async () => {
+    const ctx = await createTestContext();
+    const upstream = startMockUpstream();
+    try {
+      await addProvider(ctx, {
+        id: "opencode",
+        type: "opencode",
+        baseUrl: upstream.url,
+        apiKey: "oc_sk_test",
+        priority: 100,
+      });
+
+      const tested = await request(ctx.app, "/api/providers/opencode/test", { method: "POST" });
+      expect(tested.status).toBe(200);
+      const result = (await tested.json()) as { ok: boolean; state: { health: string } };
+      expect(result.ok).toBe(true);
+      expect(result.state.health).toBe("healthy");
+
+      const probeRequest = upstream.requests.find(
+        (entry) => entry.path === "/console/api/websearch",
+      );
+      const body = JSON.parse(probeRequest!.body!) as Record<string, unknown>;
+      expect(body.query).toBe("web search router health check");
+      expect(body.providerID).toBe("opencode");
+    } finally {
+      upstream.close();
+      ctx.close();
+    }
+  });
+
+  test("OpenCode invalid JSON is classified as an invalid response", async () => {
+    const ctx = await createTestContext();
+    const upstream = startMockUpstream();
+    try {
+      await addProvider(ctx, {
+        id: "opencode",
+        type: "opencode",
+        baseUrl: upstream.url,
+        apiKey: "oc_sk_test",
+        priority: 100,
+      });
+      upstream.setMode("invalid");
+      const response = await postSearch(ctx, "/v2/search");
+      expect(response.status).toBe(502);
+      const payload = (await response.json()) as {
+        error: string;
+        attempts: { failureKind: string }[];
+      };
+      expect(payload.error).toBe("All providers failed");
+      expect(payload.attempts[0]?.failureKind).toBe("invalid_response");
+    } finally {
+      upstream.close();
+      ctx.close();
+    }
+  });
+
   test("generic POST adapter maps configurable results", async () => {
     const ctx = await createTestContext();
     const upstream = startMockUpstream();

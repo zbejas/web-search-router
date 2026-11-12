@@ -22,7 +22,7 @@ Operators run the service with Bun or Docker Compose, open a browser dashboard, 
 
 ## Capabilities and Constraints
 
-- Provider adapters: Firecrawl Cloud and self-hosted, DeepSeek `POST /v1/tools/search`, and a configurable generic REST adapter with a broad preset library: Tavily, Brave, SearXNG, Exa, Serper, DuckDuckGo, Google CSE, SerpAPI, SearchApi, ScrapingDog, ValueSERP, Zenserp, Kagi, You.com, NewsAPI, GNews, Hacker News, GitHub, Stack Exchange, Reddit, Crossref, Semantic Scholar, and Google Books.
+- Provider adapters: Firecrawl Cloud and self-hosted, DeepSeek `POST /v1/tools/search`, OpenCode Console hosted web search, and a configurable generic REST adapter with a broad preset library: Tavily, Brave, SearXNG, Exa, Serper, DuckDuckGo, Google CSE, SerpAPI, SearchApi, ScrapingDog, ValueSERP, Zenserp, Kagi, You.com, NewsAPI, GNews, Hacker News, GitHub, Stack Exchange, Reddit, Crossref, Semantic Scholar, and Google Books.
 - Firecrawl v1 and v2 response shapes are preserved for passthrough. Non-Firecrawl search results are normalized into the matching v1 or v2 shape.
 - Higher priority numbers win. Manual disable is separate from automatic unhealthy state. Manually disabled providers are never routed to.
 - Failed providers are auto-disabled after a configurable number of consecutive failures. Probes run on a configurable interval. Successful probes re-enable them. Healthy providers are not probed by default.

@@ -126,6 +126,27 @@ export function startMockUpstream(port = 0): MockUpstream {
         });
       }
 
+      if (url.pathname === "/console/api/websearch") {
+        if (state.mode !== "ok") return failureResponse(state.mode);
+        return Response.json({
+          providerID: "opencode",
+          results: [
+            {
+              title: "OpenCode mock",
+              url: "https://example.com/opencode",
+              content: "An OpenCode hosted search result",
+              time: { published: 1_792_627_200_000 },
+            },
+            {
+              title: "OpenCode undated",
+              url: "https://example.com/opencode-undated",
+              content: "A second OpenCode result",
+              time: {},
+            },
+          ],
+        });
+      }
+
       if (url.pathname === "/" && url.searchParams.has("q")) {
         if (state.mode !== "ok") return failureResponse(state.mode);
         return Response.json({

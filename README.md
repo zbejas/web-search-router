@@ -5,7 +5,7 @@
 <strong>One endpoint for every search provider. Priority first. Failover by default.</strong>
 
 <p>
-  A self-hosted gateway for Firecrawl, DeepSeek, and a broad library of search APIs.
+  A self-hosted gateway for Firecrawl, DeepSeek, OpenCode Web Search, and a broad library of search APIs.
   It routes to the highest-priority healthy provider, disables broken upstreams,
   probes them on a schedule, and brings them back automatically.
 </p>
@@ -71,7 +71,7 @@ Web Search Router puts one stable endpoint in front of all of them:
 | **Route board** | See the primary lane, standby lane, priority, health, request count, success rate, and latency at a glance. Reorder without leaving the board. |
 | **Health state machine** | `unknown` → `healthy` / `unhealthy`, with configurable failure thresholds, scheduled probes, automatic recovery, and manual tests. |
 | **Firecrawl passthrough** | Search, scrape, crawl, map, extract, batch scrape, and unknown `/v1`/`/v2` paths pass through with the upstream status and body intact. |
-| **Provider presets** | Firecrawl, DeepSeek, Tavily, Brave, SearXNG, Exa, Serper, DuckDuckGo, Google CSE, SerpAPI, SearchApi, ScrapingDog, ValueSERP, Zenserp, Kagi, You.com, NewsAPI, GNews, Hacker News, GitHub, Stack Exchange, Reddit, Crossref, Semantic Scholar, and Google Books. |
+| **Provider presets** | Firecrawl, DeepSeek, OpenCode Web Search, Tavily, Brave, SearXNG, Exa, Serper, DuckDuckGo, Google CSE, SerpAPI, SearchApi, ScrapingDog, ValueSERP, Zenserp, Kagi, You.com, NewsAPI, GNews, Hacker News, GitHub, Stack Exchange, Reddit, Crossref, Semantic Scholar, and Google Books. |
 | **Operator-first UI** | Dark and light themes, keyboard navigation, real error states, mobile layout, and a command palette. |
 | **Safe defaults** | Authentication is off on first run. Enabling it requires an admin account; proxy traffic then requires a router API key. |
 
@@ -144,6 +144,7 @@ curl -X POST http://localhost:8123/v2/search \
 |---|---|---|
 | `firecrawl` | Firecrawl Cloud or self-hosted | search, scrape, crawl, map, extract, batch scrape, passthrough |
 | `deepseek` | `https://api.deepseek.com` | search |
+| `opencode` | `https://opencode.ai` | search |
 | `generic` | Any JSON search API | search, with broad presets and custom result mapping |
 
 The generic adapter covers web search, news, research, and developer APIs. Presets

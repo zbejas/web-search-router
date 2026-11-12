@@ -30,6 +30,7 @@ The router is deliberately state-based, not connection-based: provider health, p
 | `src/providers/shared.ts` | Shared adapter helpers: search parsing, status classification, timed fetch, hints. |
 | `src/providers/firecrawl.ts` | Firecrawl passthrough, `/api/search` bridge, readiness/credit probes. |
 | `src/providers/deepseek.ts` | DeepSeek `POST /v1/tools/search` adapter. |
+| `src/providers/opencode.ts` | OpenCode Console `POST /console/api/websearch` adapter. |
 | `src/providers/generic.ts` | Configurable REST search adapter with presets and probe config. |
 | `src/providers/search.ts` | Firecrawl v1/v2 search response normalization. |
 

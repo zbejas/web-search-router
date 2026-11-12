@@ -1,4 +1,4 @@
-export type ProviderType = "firecrawl" | "deepseek" | "generic";
+export type ProviderType = "firecrawl" | "deepseek" | "opencode" | "generic";
 
 export type ProviderHealth = "healthy" | "unhealthy" | "unknown";
 

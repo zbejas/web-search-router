@@ -60,7 +60,7 @@ export function LoginPage({ needsSetup = false }: { needsSetup?: boolean }) {
             <span className="text-accent">Recover.</span>
           </h1>
           <p className="mt-7 max-w-md text-sm leading-relaxed text-muted">
-            One gateway for Firecrawl, DeepSeek, and any JSON search API. Priority first,
+            One gateway for Firecrawl, DeepSeek, OpenCode, and any JSON search API. Priority first,
             automatic health recovery always, credentials encrypted at rest.
           </p>
         </div>

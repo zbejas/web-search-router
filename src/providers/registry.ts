@@ -2,11 +2,13 @@ import type { ProviderType } from "../types";
 import type { ProviderAdapter } from "./types";
 import { firecrawlAdapter } from "./firecrawl";
 import { deepseekAdapter } from "./deepseek";
+import { opencodeAdapter } from "./opencode";
 import { genericAdapter } from "./generic";
 
 const ADAPTERS: Record<ProviderType, ProviderAdapter> = {
   firecrawl: firecrawlAdapter,
   deepseek: deepseekAdapter,
+  opencode: opencodeAdapter,
   generic: genericAdapter,
 };
 

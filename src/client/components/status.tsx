@@ -1,4 +1,4 @@
-import { Boxes, Flame, Globe2, Waves } from "lucide-react";
+import { Boxes, Flame, Globe2, SquareTerminal, Waves } from "lucide-react";
 import type { Provider, ProviderHealth, ProviderType } from "../lib/api";
 import { formatDate, formatNumber, formatRelative } from "../lib/format";
 import { Badge, type Tone } from "./ui";
@@ -79,6 +79,7 @@ export function CreditBadge({
 const PROVIDER_ICONS = {
   firecrawl: Flame,
   deepseek: Waves,
+  opencode: SquareTerminal,
   generic: Globe2,
 } as const;
 

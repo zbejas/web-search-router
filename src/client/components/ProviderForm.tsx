@@ -13,6 +13,10 @@ const DEFAULT_CONFIG: Record<ProviderType, Record<string, unknown>> = {
     needContent: true,
     probeMode: "search",
   },
+  opencode: {
+    searchPath: "/console/api/websearch",
+    providerID: "opencode",
+  },
   generic: {},
 };
 

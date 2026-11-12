@@ -39,8 +39,8 @@ createRuntime()
 
 - The old database is copied to `router.db` only when `router.db` does not exist.
 - Existing `users`, `sessions`, `api_keys`, and `proxy_logs` rows are preserved.
-- Providers with type `opencode` and their provider events are deleted on startup because that adapter no longer exists. Historical `proxy_logs` rows are retained.
-- Migrations add `api_keys.scopes` (default `["*"]`) and `proxy_logs` columns (`provider_id`, `provider_type`, `operation`, `attempts`, `request_id`, `query`, `error_kind`, `client_ip`).
+- Providers with type `opencode` are preserved now that the adapter is supported again. Databases upgraded while the adapter was absent may have already lost those rows; they cannot be recovered.
+- Migrations add `api_keys.scopes` (default `["*"]`), `providers.billing` (JSON monetary snapshot), and `proxy_logs` columns (`provider_id`, `provider_type`, `operation`, `attempts`, `request_id`, `query`, `error_kind`, `client_ip`).
 - `proxy_logs.provider_id` is backfilled from `endpoint_id`; the old column remains for compatibility.
 - Old logs use `YYYY-MM-DD HH:MM:SS` timestamps; new logs use the same SQLite format.
 
@@ -123,7 +123,7 @@ The volume name depends on the Compose project name. Run `docker volume ls` if i
 - **`proxy.db` is copied, not moved.** The old file stays in place. Only `endpoints.json` and `settings.json` are renamed after import.
 - **Quarantined endpoints come back as enabled/unhealthy.** The old permanent-quarantine model is gone. A quarantined provider is probed and can recover automatically. If you want it off, disable it manually after migration.
 - **Old retry/backoff settings do not carry over.** `RETRY_AFTER_SECONDS`, `MAX_PROBE_FAILURES`, `MAX_PROBE_BACKOFF_SECONDS`, and `QUARANTINE_RETRY_SECONDS` are not part of the new schema.
-- **OpenCode providers do not survive the upgrade.** The `opencode` adapter was removed; startup deletes those provider rows and their events. Remove any OpenCode dependency before upgrading.
+- **OpenCode providers are supported again.** Startup no longer deletes them. If a database was upgraded while the adapter was absent, those rows are gone and must be re-added.
 - **Old `fr_` keys still work but new keys are `wsr_`.** Rotate keys at your own pace; revoking an old key immediately stops it.
 - **Old `fc_session` cookies are accepted but not refreshed.** New logins set `wsr_session`; clear old cookies if you see session confusion.
 - **The old `.env` is not read.** Copying `.env` into the new deployment does nothing.

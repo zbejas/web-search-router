@@ -75,7 +75,7 @@ Fixed rem scale; no fluid display type. Page titles use tight tracking (`-0.03em
 
 - Direct, operational, honest. “Higher numbers are tried first.” “A successful probe moves an auto-disabled provider back to healthy.”
 - No marketing superlatives, invented benchmarks, or false availability claims.
-- Provider limitations are stated in the UI and docs: DeepSeek and OpenCode probes cost money, and generic mappings depend on the upstream JSON shape.
+- Provider limitations are stated in the UI and docs: DeepSeek probes and OpenCode search probes cost money, and generic mappings depend on the upstream JSON shape.
 - Numbers use tabular figures and localized formatting; dates are relative where recency matters (`just now`, `30s ago`) and absolute in logs.
 
 ## Implementation

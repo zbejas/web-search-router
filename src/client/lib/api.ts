@@ -27,6 +27,7 @@ export interface Provider {
   creditsPlan: number | null;
   creditsPeriodEnd: string | null;
   creditsCheckedAt: string | null;
+  billing: BillingState | null;
   capabilities: Capability[];
   config: Record<string, unknown>;
   probeIntervalSeconds: number | null;
@@ -182,6 +183,18 @@ export interface CreditState {
   periodEnd: string | null;
 }
 
+export interface BillingState {
+  balanceUsd: number | null;
+  availableUsd: number | null;
+  spendUsd: number | null;
+  range: string | null;
+  webSearchRequests: number | null;
+  webSearchSpendUsd: number | null;
+  billingMode: string | null;
+  mode: string | null;
+  checkedAt: string;
+}
+
 export interface ProviderTestResult {
   providerId: string;
   providerType: ProviderType;
@@ -193,6 +206,7 @@ export interface ProviderTestResult {
   hint: string | null;
   failureKind: string | null;
   credits?: CreditState | null;
+  billing?: BillingState | null;
   checkedAt: string;
   state: Provider;
 }

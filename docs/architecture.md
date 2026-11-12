@@ -130,9 +130,9 @@ disabled --operator enable--> enabled, health = unknown
 
 - `ProviderStore.recordSuccess()` resets `consecutiveFailures`, sets `health = healthy`, and records `lastHealthyAt`.
 - `ProviderStore.recordFailure()` increments the counter and marks `unhealthy` when it reaches `failureThreshold`.
-- `ProviderStore.recordProbe()` updates `lastCheckedAt`, `lastError`, `lastStatusCode`, `lastLatencyMs`, and any Firecrawl credit snapshot (`creditsRemaining`, `creditsPlan`, `creditsPeriodEnd`, `creditsCheckedAt`); success recovers when `autoRecoverEnabled` or `forceRecover` is true. A `quota` failure disables on the first probe instead of waiting for `failureThreshold`: an exhausted balance is a proven state, and retries cannot restore it.
+- `ProviderStore.recordProbe()` updates `lastCheckedAt`, `lastError`, `lastStatusCode`, `lastLatencyMs`, and any Firecrawl credit or OpenCode billing snapshot (`creditsRemaining`, `creditsPlan`, `creditsPeriodEnd`, `creditsCheckedAt`, `billing`); success recovers when `autoRecoverEnabled` or `forceRecover` is true. A `quota` failure disables on the first probe instead of waiting for `failureThreshold`: an exhausted balance is a proven state, and retries cannot restore it.
 - Provider events (`auto_disabled`, `auto_enabled`, `test_ok`, `test_failed`, `manual_disabled`, `manual_enabled`, `created`, `updated`, `migrated`) are written to `provider_events`.
-- `HealthService.runDueChecks()` probes enabled providers that are unhealthy/unknown, or all enabled providers when `probeHealthy` is true, and when the per-provider interval has elapsed. Healthy Firecrawl providers with an API key in `auto`/`credit` mode are also probed when due so their credit snapshot stays current. It runs four probes concurrently.
+- `HealthService.runDueChecks()` probes enabled providers that are unhealthy/unknown, or all enabled providers when `probeHealthy` is true, and when the per-provider interval has elapsed. Healthy Firecrawl providers with an API key in `auto`/`credit` mode and OpenCode providers using the free `usage` probe are also probed when due so their billing snapshot stays current. It runs four probes concurrently.
 - The scheduler ticks every second and reads the current settings, so changing `healthCheckIntervalSeconds` takes effect without a restart.
 
 ### Persistence
@@ -141,7 +141,7 @@ disabled --operator enable--> enabled, health = unknown
 
 | Table | Contents |
 |---|---|
-| `providers` | Provider config, encrypted key, priority, enabled flag, health state, failure counters, last check metadata, Firecrawl credit snapshot |
+| `providers` | Provider config, encrypted key, priority, enabled flag, health state, failure counters, last check metadata, Firecrawl credit and OpenCode billing snapshots |
 | `provider_events` | State transitions and manual tests |
 | `settings` | Flat key/value settings (`routing.failureThreshold`, etc.) |
 | `users` | Dashboard users, bcrypt hashes, and a hidden `system` API-key owner |
@@ -167,7 +167,7 @@ Provider API keys are encrypted with AES-256-GCM using `data/master.key`. The pl
 - **Firecrawl passthrough preserves the upstream response.** `/v1/*` and `/v2/*` Firecrawl requests are not re-serialized; the router only adds headers and logs the body.
 - **Client 4xx errors do not disable providers.** A `400`/`422` stops the chain and is returned to the caller. `404`/`405` are still failover candidates because they often indicate a wrong base URL.
 - **Timeouts are two-layered.** `routing.requestTimeoutMs` is per attempt; `routing.totalTimeoutMs` is the budget for all attempts. Each adapter receives `min(requestTimeoutMs, remaining total budget)`.
-- **Probes are provider-specific and may cost money.** Firecrawl uses the free readiness endpoint, plus credit usage when a key is configured; a zero or negative credit balance is a `quota` probe failure, so credit-exhausted providers do not auto-recover before their balance returns. Healthy Firecrawl providers with a key in `auto`/`credit` mode are still probed each interval so the displayed credit snapshot stays current. DeepSeek probes issue a one-result search. Generic probes use the configured probe request or a one-result search.
+- **Probes are provider-specific and may cost money.** Firecrawl uses the free readiness endpoint, plus credit usage when a key is configured; a zero or negative credit balance is a `quota` probe failure, so credit-exhausted providers do not auto-recover before their balance returns. Healthy Firecrawl providers with a key in `auto`/`credit` mode and OpenCode providers using the free `usage` probe are still probed each interval so the displayed billing snapshot stays current. DeepSeek probes issue a one-result search. OpenCode `search` probes issue a one-result search; the default `usage` probe is free. Generic probes use the configured probe request or a one-result search.
 - **Health state is not scoped to a capability.** A provider that supports search only is never asked to scrape; capability filtering happens before health is consulted.
 - **Settings patches validate every key.** Unknown keys, out-of-range numbers, and wrong types return `400` with an `issues` array. There is no silent partial apply.
 - **`master.key` is the recovery boundary.** Back up the entire data directory. Copying `router.db` without `master.key` does not preserve usable provider credentials.

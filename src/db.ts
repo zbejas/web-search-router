@@ -45,6 +45,7 @@ function migrate(db: Database): void {
       credits_plan REAL,
       credits_period_end TEXT,
       credits_checked_at TEXT,
+      billing TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
@@ -135,20 +136,13 @@ function migrate(db: Database): void {
     "INSERT OR IGNORE INTO users (id, username, password_hash, role) VALUES ('system', 'system', '', 'system')",
   ).run();
 
-  // The OpenCode adapter was removed. Purge unsupported rows and their events so
-  // an upgraded database cannot select a provider type with no adapter.
-  db.exec(`
-    DELETE FROM provider_events
-    WHERE provider_id IN (SELECT id FROM providers WHERE lower(type) = 'opencode');
-    DELETE FROM providers WHERE lower(type) = 'opencode';
-  `);
-
   // Migrate older databases in place without losing rows.
   ensureColumn(db, "api_keys", "scopes", `TEXT NOT NULL DEFAULT '["*"]'`);
   ensureColumn(db, "providers", "credits_remaining", "REAL");
   ensureColumn(db, "providers", "credits_plan", "REAL");
   ensureColumn(db, "providers", "credits_period_end", "TEXT");
   ensureColumn(db, "providers", "credits_checked_at", "TEXT");
+  ensureColumn(db, "providers", "billing", "TEXT");
   ensureColumn(db, "proxy_logs", "request_id", "TEXT");
   ensureColumn(db, "proxy_logs", "request_query", "TEXT");
   ensureColumn(db, "proxy_logs", "operation", "TEXT");

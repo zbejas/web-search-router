@@ -94,6 +94,7 @@ describe("provider adapters", () => {
           web: {
             title: string;
             url: string;
+            description: string;
             markdown: string;
             metadata: { publishedAt?: string };
           }[];
@@ -103,6 +104,7 @@ describe("provider adapters", () => {
       expect(v2Payload.data.web).toHaveLength(1);
       expect(v2Payload.data.web[0]?.title).toBe("OpenCode mock");
       expect(v2Payload.data.web[0]?.url).toBe("https://example.com/opencode");
+      expect(v2Payload.data.web[0]?.description).toBe("");
       expect(v2Payload.data.web[0]?.markdown).toBe("An OpenCode hosted search result");
       expect(v2Payload.data.web[0]?.metadata.publishedAt).toBe("2026-10-22T00:00:00.000Z");
       expect(v2Payload.creditsUsed).toBe(0);
@@ -130,6 +132,7 @@ describe("provider adapters", () => {
         baseUrl: upstream.url,
         apiKey: "oc_sk_test",
         priority: 100,
+        config: { probeMode: "search" },
       });
 
       const tested = await request(ctx.app, "/api/providers/opencode/test", { method: "POST" });
@@ -144,6 +147,156 @@ describe("provider adapters", () => {
       const body = JSON.parse(probeRequest!.body!) as Record<string, unknown>;
       expect(body.query).toBe("web search router health check");
       expect(body.providerID).toBe("opencode");
+    } finally {
+      upstream.close();
+      ctx.close();
+    }
+  });
+
+  test("OpenCode probe records workspace spend and balance", async () => {
+    const ctx = await createTestContext();
+    const upstream = startMockUpstream();
+    try {
+      await addProvider(ctx, {
+        id: "opencode",
+        type: "opencode",
+        baseUrl: upstream.url,
+        apiKey: "oc_sk_test",
+        priority: 100,
+        config: { usageRange: "30d" },
+      });
+
+      const tested = await request(ctx.app, "/api/providers/opencode/test", { method: "POST" });
+      expect(tested.status).toBe(200);
+      const result = (await tested.json()) as {
+        ok: boolean;
+        billing: {
+          balanceUsd: number | null;
+          availableUsd: number | null;
+          spendUsd: number | null;
+          range: string | null;
+          webSearchRequests: number | null;
+          webSearchSpendUsd: number | null;
+          billingMode: string | null;
+          mode: string | null;
+          checkedAt: string;
+        } | null;
+        state: { billing: { spendUsd: number | null } | null };
+      };
+      expect(result.ok).toBe(true);
+      expect(result.billing?.balanceUsd).toBeCloseTo(12.34);
+      expect(result.billing?.availableUsd).toBeCloseTo(10);
+      expect(result.billing?.spendUsd).toBeCloseTo(18.01426762);
+      expect(result.billing?.range).toBe("30d");
+      expect(result.billing?.webSearchRequests).toBe(7);
+      expect(result.billing?.webSearchSpendUsd).toBeCloseTo(0.07);
+      expect(result.billing?.billingMode).toBe("pay-as-you-go");
+      expect(result.billing?.checkedAt).toBeTruthy();
+      expect(result.state.billing?.spendUsd).toBeCloseTo(18.01426762);
+
+      const summaryRequest = upstream.requests.find((entry) =>
+        entry.path.startsWith("/console/api/usage/summary"),
+      );
+      expect(summaryRequest?.path).toBe("/console/api/usage/summary?range=30d");
+      expect(summaryRequest?.headers.authorization).toBe("Bearer oc_sk_test");
+    } finally {
+      upstream.close();
+      ctx.close();
+    }
+  });
+
+  test("OpenCode billing falls back to spend when Billing is forbidden", async () => {
+    const ctx = await createTestContext();
+    const upstream = startMockUpstream();
+    try {
+      upstream.setBillingAccess("forbidden");
+      await addProvider(ctx, {
+        id: "opencode",
+        type: "opencode",
+        baseUrl: upstream.url,
+        apiKey: "oc_sk_test",
+        priority: 100,
+      });
+
+      const tested = await request(ctx.app, "/api/providers/opencode/test", { method: "POST" });
+      expect(tested.status).toBe(200);
+      const result = (await tested.json()) as {
+        ok: boolean;
+        billing: {
+          balanceUsd: number | null;
+          availableUsd: number | null;
+          spendUsd: number | null;
+          webSearchSpendUsd: number | null;
+        } | null;
+      };
+      expect(result.ok).toBe(true);
+      expect(result.billing?.balanceUsd).toBeNull();
+      expect(result.billing?.availableUsd).toBeNull();
+      expect(result.billing?.spendUsd).toBeCloseTo(18.01426762);
+      expect(result.billing?.webSearchSpendUsd).toBeCloseTo(0.07);
+    } finally {
+      upstream.close();
+      ctx.close();
+    }
+  });
+
+  test("OpenCode usage probe skips the paid search request", async () => {
+    const ctx = await createTestContext();
+    const upstream = startMockUpstream();
+    try {
+      await addProvider(ctx, {
+        id: "opencode",
+        type: "opencode",
+        baseUrl: upstream.url,
+        apiKey: "oc_sk_test",
+        priority: 100,
+        config: { probeMode: "usage" },
+      });
+
+      const tested = await request(ctx.app, "/api/providers/opencode/test", { method: "POST" });
+      expect(tested.status).toBe(200);
+      const result = (await tested.json()) as { ok: boolean; state: { health: string } };
+      expect(result.ok).toBe(true);
+      expect(result.state.health).toBe("healthy");
+      expect(
+        upstream.requests.some((entry) => entry.path === "/console/api/websearch"),
+      ).toBe(false);
+      expect(
+        upstream.requests.some((entry) => entry.path.startsWith("/console/api/usage/summary")),
+      ).toBe(true);
+    } finally {
+      upstream.close();
+      ctx.close();
+    }
+  });
+
+  test("OpenCode usage probe falls back to search when Usage is forbidden", async () => {
+    const ctx = await createTestContext();
+    const upstream = startMockUpstream();
+    try {
+      upstream.setUsageAccess("forbidden");
+      await addProvider(ctx, {
+        id: "opencode",
+        type: "opencode",
+        baseUrl: upstream.url,
+        apiKey: "oc_sk_test",
+        priority: 100,
+      });
+
+      const tested = await request(ctx.app, "/api/providers/opencode/test", { method: "POST" });
+      expect(tested.status).toBe(200);
+      const result = (await tested.json()) as {
+        ok: boolean;
+        billing: { balanceUsd: number | null; spendUsd: number | null } | null;
+        state: { health: string };
+      };
+      expect(result.ok).toBe(true);
+      expect(result.state.health).toBe("healthy");
+      expect(result.billing?.balanceUsd).toBeCloseTo(12.34);
+      expect(result.billing?.spendUsd).toBeNull();
+      expect(
+        upstream.requests.some((entry) => entry.path === "/console/api/websearch"),
+      ).toBe(true);
     } finally {
       upstream.close();
       ctx.close();

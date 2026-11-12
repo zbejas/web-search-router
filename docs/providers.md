@@ -46,6 +46,7 @@ interface Provider {
   creditsPlan: number | null;
   creditsPeriodEnd: string | null;
   creditsCheckedAt: string | null;
+  billing: BillingState | null;        // OpenCode spend/balance snapshot
   // lastCheckedAt, lastHealthyAt, lastError, lastStatusCode, lastLatencyMs,
   // requestCount, successRate, avgLatencyMs, createdAt, updatedAt
 }
@@ -104,18 +105,35 @@ Create/update payloads accept `id`, `name`, `type`, `baseUrl`, `apiKey`, `priori
 {
   "searchPath": "/console/api/websearch",
   "providerID": "opencode",
-  "orgId": "<workspace or org id>"
+  "orgId": "<workspace or org id>",
+  "probeMode": "usage",
+  "usageRange": "30d"
 }
 ```
 
 - Calls `POST https://opencode.ai/console/api/websearch` with `Authorization: Bearer <key>`.
 - Request body: `{ query, providerID }`. `providerID` defaults to `opencode`; other values are rejected upstream with `400`.
 - Optional `orgId` is sent as `x-org-id` for keys that can access more than one workspace.
-- Response fields map to: `url`, `title`, `content`, and `publishedAt` (`time.published`, epoch milliseconds converted to ISO 8601).
+- Response fields map to: `url`, `title`, `content` (emitted as `markdown`), and `publishedAt` (`time.published`, epoch milliseconds converted to ISO 8601). `description` is left empty so the page text is not duplicated.
 - Returns at most eight results; larger `limit` values are clamped to eight.
 - Error bodies use `{"_tag":"Unauthorized"}` or `{"_tag":"BadRequest"}`; the adapter reports them as `OpenCode returned <status> (<tag>)`.
 - Enable **Hosted Web Search** for the workspace in OpenCode Console first. Each successful search costs $0.01.
-- The health probe issues a one-result search and costs $0.01 when it succeeds. There is no free liveness endpoint.
+- `probeMode`: `"usage"` (default) uses the free usage summary as the liveness check and does not call the search endpoint; `"search"` issues a one-result paid search. If the usage summary returns `401`/`403`/`4xx`, the adapter falls back to the search probe so a key without Usage read can still be healthy.
+- `usageRange`: window for spend reporting; one of `24h`, `7d`, `30d` (default), or `all`.
+
+#### Billing
+
+The probe also reads two Console endpoints for money:
+
+| Endpoint | Data | Permission |
+|---|---|---|
+| `GET /console/api/usage/summary?range=30d` | Workspace spend and the `web-search` service breakdown | **Usage › Read** |
+| `GET /console/api/billing/status` | `balanceMicroCents`, `availableMicroCents`, billing mode | **Billing › Read** |
+
+- Amounts are micro-cents; the adapter divides by `100,000,000` to store USD.
+- A key without **Billing › Read** gets `403` from the balance endpoint. The adapter ignores that response and still reports spend from the usage summary. The dashboard shows `$X / 30d` instead of a balance.
+- The usage summary totals the whole workspace, including inference. The tooltip and provider test panel also show the `web-search` share.
+- Probe billing reads are free; only the search probe is billed.
 
 ### Generic REST
 
@@ -256,7 +274,7 @@ interface ProviderAdapter {
 - **Base URLs never include `/v1` or `/v2`.** Paths are appended by the adapter or preserved from the incoming request. Trailing slashes are stripped by the provider store.
 - **Firecrawl self-hosted may not expose team/billing routes.** `probeMode: "auto"` falls back to `/v0/health/readiness` when credit usage returns `404`.
 - **Firecrawl probes do not validate auth in readiness mode.** Use `probeMode: "auto"`/`"credit"` with a Cloud key so the credit endpoint validates the key; a bad key will fail the probe.
-- **DeepSeek and OpenCode probes cost money.** A one-result search is billed if successful. OpenCode bills $0.01 per successful search. Use DeepSeek `probeMode: "models"` for a cheaper auth check; OpenCode has no free liveness endpoint.
+- **DeepSeek probes and OpenCode search probes cost money.** A one-result search is billed if successful. OpenCode bills $0.01 per successful search. Use DeepSeek `probeMode: "models"` or OpenCode `probeMode: "usage"` for a free auth check.
 - **Generic preset mapping is path-based, not schema-based.** If a provider changes its response shape, update `resultsPath`/`fields`; no code change is needed.
 - **A generic provider with no `search` config is rejected.** Use the `custom` preset or send a complete `search` object.
 - **Capabilities are derived from the adapter, not from config.** Changing `config` does not make a search-only provider handle scrape.

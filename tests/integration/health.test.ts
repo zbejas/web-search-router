@@ -261,4 +261,41 @@ describe("health service", () => {
       ctx.close();
     }
   });
+
+  test("refreshes OpenCode billing on the health interval with the free usage probe", async () => {
+    const ctx = await createTestContext();
+    const upstream = startMockUpstream();
+    try {
+      await addProvider(ctx, upstream.url, {
+        id: "opencode",
+        type: "opencode",
+        apiKey: "oc_sk_test",
+      });
+
+      const first = await ctx.runtime.health.runDueChecks({ force: true });
+      expect(first[0]?.ok).toBe(true);
+      const initial = await ctx.runtime.providers.getPublic("opencode");
+      expect(initial?.health).toBe("healthy");
+      expect(initial?.billing?.spendUsd).toBeCloseTo(18.01426762);
+      expect(
+        upstream.requests.some((entry) => entry.path === "/console/api/websearch"),
+      ).toBe(false);
+
+      const before = upstream.requests.length;
+      ctx.runtime.db
+        .prepare("UPDATE providers SET last_checked_at = datetime('now', '-1 hour') WHERE id = ?")
+        .run("opencode");
+      const refreshed = await ctx.runtime.health.runDueChecks();
+      expect(refreshed.length).toBe(1);
+      expect(upstream.requests.length).toBeGreaterThan(before);
+      expect(
+        upstream.requests.some((entry) =>
+          entry.path.startsWith("/console/api/usage/summary"),
+        ),
+      ).toBe(true);
+    } finally {
+      upstream.close();
+      ctx.close();
+    }
+  });
 });
